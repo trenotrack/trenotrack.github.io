@@ -1,7 +1,6 @@
-import { Clock, CircleDot, CheckCircle2, XCircle, MapPin } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { CheckCircle2, XCircle, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Train as TrainType, getDelayBadgeVariant } from '@/lib/api';
+import { Train as TrainType } from '@/lib/api';
 
 interface TrainCardProps {
   train: TrainType;
@@ -25,96 +24,83 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
   const binario = train.binarioEffettivoPartenzaDescrizione || train.binarioProgrammatoPartenzaDescrizione;
   const estimatedTime = hasDelay ? addMinutesToTime(train.compOrarioPartenza, train.ritardo) : null;
 
-  const getStatusIcon = () => {
-    if (isCancelled) return <XCircle className="h-4 w-4" />;
-    if (isArrived) return <CheckCircle2 className="h-4 w-4" />;
-    if (train.nonPartito) return <CircleDot className="h-4 w-4" />;
-    return null;
-  };
-
-  const getStatusText = () => {
-    if (isCancelled) return 'Cancellato';
-    if (isArrived) return 'Arrivato';
-    if (train.nonPartito) return 'Non partito';
-    return null;
-  };
-
   return (
-    <div 
+    <button 
       onClick={onClick}
       className={cn(
-        "group py-4 px-1 cursor-pointer transition-all border-b border-border/50 hover:bg-muted/30 active:scale-[0.99]",
+        "w-full text-left py-5 border-b border-border transition-all active:scale-[0.99]",
         isArrived && "opacity-40",
-        isCancelled && "opacity-50"
+        isCancelled && "opacity-40"
       )}
     >
       <div className="flex items-start justify-between gap-4">
         {/* Left section - Destination focused */}
-        <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex-1 min-w-0">
           <h3 className={cn(
-            "font-semibold text-lg tracking-tight truncate",
-            isCancelled && "line-through text-muted-foreground"
+            "text-xl font-semibold tracking-tight truncate mb-1",
+            isCancelled && "line-through"
           )}>
             {train.destinazione}
           </h3>
           
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span className="font-medium">{train.categoria} {train.numeroTreno}</span>
+            <span>{train.categoria} {train.numeroTreno}</span>
             {binario && (
               <>
-                <span className="text-muted-foreground/50">•</span>
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  Bin. {binario}
-                </span>
+                <span>•</span>
+                <span>Bin. {binario}</span>
               </>
             )}
           </div>
         </div>
 
-        {/* Right section - Time and status */}
-        <div className="text-right shrink-0 space-y-1">
+        {/* Right section - Time */}
+        <div className="text-right shrink-0">
           {/* Time display */}
-          <div className="flex items-center gap-2 justify-end">
-            {hasDelay && !isCancelled ? (
-              <div className="flex items-baseline gap-2">
-                <span className="text-sm text-muted-foreground line-through tabular-nums">
-                  {train.compOrarioPartenza}
-                </span>
-                <span className="font-bold text-xl tabular-nums text-foreground">
-                  {estimatedTime}
-                </span>
-              </div>
-            ) : (
-              <span className={cn(
-                "font-bold text-xl tabular-nums",
-                isCancelled && "line-through text-muted-foreground"
-              )}>
+          {hasDelay && !isCancelled ? (
+            <div className="space-y-0.5">
+              <p className="text-sm text-muted-foreground line-through tabular-nums">
                 {train.compOrarioPartenza}
-              </span>
-            )}
-          </div>
+              </p>
+              <p className="text-2xl font-semibold tabular-nums tracking-tight">
+                {estimatedTime}
+              </p>
+              <p className="text-xs font-medium text-destructive">+{train.ritardo} min</p>
+            </div>
+          ) : (
+            <p className={cn(
+              "text-2xl font-semibold tabular-nums tracking-tight",
+              isCancelled && "line-through text-muted-foreground"
+            )}>
+              {train.compOrarioPartenza}
+            </p>
+          )}
           
-          {/* Status badges */}
-          <div className="flex flex-wrap gap-1.5 justify-end">
-            {hasDelay && !isCancelled && (
-              <Badge variant={getDelayBadgeVariant(train.ritardo)} className="font-semibold">
-                +{train.ritardo}'
-              </Badge>
-            )}
-            
-            {getStatusText() && (
-              <Badge 
-                variant={isCancelled ? "destructive" : isArrived ? "secondary" : "outline"}
-                className="gap-1"
-              >
-                {getStatusIcon()}
-                {getStatusText()}
-              </Badge>
-            )}
-          </div>
+          {/* Status */}
+          {(isCancelled || isArrived || train.nonPartito) && (
+            <div className="flex items-center gap-1.5 justify-end mt-2 text-xs text-muted-foreground">
+              {isCancelled && (
+                <>
+                  <XCircle className="h-3.5 w-3.5" />
+                  <span>Cancellato</span>
+                </>
+              )}
+              {isArrived && !isCancelled && (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Arrivato</span>
+                </>
+              )}
+              {train.nonPartito && !isCancelled && !isArrived && (
+                <>
+                  <Circle className="h-3.5 w-3.5" />
+                  <span>Non partito</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

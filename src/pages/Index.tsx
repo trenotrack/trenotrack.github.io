@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Train, MapPin, Search, AlertCircle, RefreshCw } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StationSearch } from '@/components/StationSearch';
 import { TrainSearch } from '@/components/TrainSearch';
 import { DeparturesBoard } from '@/components/DeparturesBoard';
 import { TrainDetailModal } from '@/components/TrainDetailModal';
 import { Station, searchTrainByNumber } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState<'station' | 'train'>('station');
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [searchingTrain, setSearchingTrain] = useState<number | null>(null);
   const [trainSearchResult, setTrainSearchResult] = useState<{
@@ -32,7 +32,7 @@ const Index = () => {
       setSearchingTrain(parseInt(result.trainNum));
       setTrainSearchResult(result);
     } else {
-      setTrainSearchError('Treno non trovato. Verifica il numero e riprova.');
+      setTrainSearchError('Treno non trovato');
     }
     
     setIsSearchingTrain(false);
@@ -42,6 +42,11 @@ const Index = () => {
     setSearchingTrain(null);
     setTrainSearchResult(null);
   };
+
+  // Get current time
+  const now = new Date();
+  const currentTime = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  const currentDate = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
 
   // Show departures board if station is selected
   if (selectedStation) {
@@ -54,109 +59,102 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground">
-        <div className="container max-w-2xl mx-auto px-4 py-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary-foreground/10 rounded-lg">
-              <Train className="h-8 w-8" />
-            </div>
-            <h1 className="text-2xl font-bold">TrenoTracker</h1>
-          </div>
-          <p className="text-primary-foreground/80">
-            Segui i tuoi treni in tempo reale
-          </p>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Main content */}
-      <main className="container max-w-2xl mx-auto px-4 -mt-4">
-        <div className="bg-card rounded-2xl shadow-lg p-4">
-          <Tabs defaultValue="station" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="station" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span className="hidden sm:inline">Cerca </span>Stazione
-              </TabsTrigger>
-              <TabsTrigger value="train" className="flex items-center gap-2">
-                <Search className="h-4 w-4" />
-                <span className="hidden sm:inline">Cerca </span>Treno
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="station" className="mt-0">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Inserisci il nome della stazione per vedere il tabellone delle partenze
-                </p>
-                <StationSearch 
-                  onStationSelect={handleStationSelect}
-                  placeholder="Es: Milano Centrale, Roma..."
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="train" className="mt-0">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Inserisci il numero del treno per vedere il suo percorso in tempo reale
-                </p>
-                <TrainSearch 
-                  onSearch={handleTrainSearch}
-                  isLoading={isSearchingTrain}
-                />
-                
-                {isSearchingTrain && (
-                  <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground">
-                    <RefreshCw className="h-5 w-5 animate-spin" />
-                    <span>Ricerca in corso...</span>
-                  </div>
-                )}
-                
-                {trainSearchError && (
-                  <div className="flex items-center gap-2 p-4 bg-destructive/10 rounded-lg text-destructive">
-                    <AlertCircle className="h-5 w-5 shrink-0" />
-                    <span>{trainSearchError}</span>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+      <main className="flex-1 container max-w-md mx-auto px-6 pt-12 pb-8 flex flex-col">
+        {/* Header with time */}
+        <div className="mb-8">
+          <p className="text-sm text-muted-foreground capitalize">{currentDate}</p>
+          <h1 className="text-7xl font-light tracking-tighter tabular-nums mt-2">
+            {currentTime}
+          </h1>
         </div>
 
-        {/* Info section */}
-        <div className="mt-8 space-y-4">
-          <h2 className="font-semibold text-lg">Come funziona</h2>
-          <div className="grid gap-4">
-            <div className="flex items-start gap-3 p-4 bg-card rounded-lg">
-              <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                <MapPin className="h-5 w-5 text-primary" />
-              </div>
+        {/* Tab Toggle - Pill style */}
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex bg-muted rounded-full p-1">
+            <button
+              onClick={() => setActiveTab('station')}
+              className={cn(
+                "px-6 py-2.5 text-sm font-medium rounded-full transition-all",
+                activeTab === 'station' 
+                  ? "bg-foreground text-background" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Stazione
+            </button>
+            <button
+              onClick={() => setActiveTab('train')}
+              className={cn(
+                "px-6 py-2.5 text-sm font-medium rounded-full transition-all",
+                activeTab === 'train' 
+                  ? "bg-foreground text-background" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Treno
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1">
+          {activeTab === 'station' ? (
+            <div className="space-y-6">
               <div>
-                <h3 className="font-medium">Cerca per stazione</h3>
+                <h2 className="text-2xl font-semibold mb-1">Cerca stazione</h2>
                 <p className="text-sm text-muted-foreground">
-                  Visualizza tutti i treni in partenza da una stazione con orari e ritardi aggiornati
+                  Visualizza le partenze in tempo reale
                 </p>
               </div>
+              <StationSearch 
+                onStationSelect={handleStationSelect}
+                placeholder="Milano, Roma, Napoli..."
+              />
             </div>
-            <div className="flex items-start gap-3 p-4 bg-card rounded-lg">
-              <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                <Train className="h-5 w-5 text-primary" />
-              </div>
+          ) : (
+            <div className="space-y-6">
               <div>
-                <h3 className="font-medium">Cerca per numero treno</h3>
+                <h2 className="text-2xl font-semibold mb-1">Cerca treno</h2>
                 <p className="text-sm text-muted-foreground">
-                  Segui un treno specifico e vedi tutte le fermate con gli orari reali
+                  Inserisci il numero del treno
                 </p>
               </div>
+              <TrainSearch 
+                onSearch={handleTrainSearch}
+                isLoading={isSearchingTrain}
+              />
+              
+              {isSearchingTrain && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+                </div>
+              )}
+              
+              {trainSearchError && (
+                <p className="text-center text-muted-foreground py-4">
+                  {trainSearchError}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom info */}
+        <div className="mt-auto pt-12">
+          <div className="grid grid-cols-2 gap-8 text-sm">
+            <div>
+              <p className="text-muted-foreground mb-1">Stazione</p>
+              <p className="font-medium">Cerca per nome</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground mb-1">Treno</p>
+              <p className="font-medium">Cerca per numero</p>
             </div>
           </div>
         </div>
       </main>
-
-      {/* Footer spacing */}
-      <div className="h-8" />
 
       {/* Train detail modal */}
       {searchingTrain && trainSearchResult && (

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, MapPin, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Search, X, ChevronRight } from 'lucide-react';
 import { searchStations, Station } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -62,20 +61,20 @@ export function StationSearch({ onStationSelect, placeholder = "Cerca stazione..
   return (
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <input
           ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => stations.length > 0 && setIsOpen(true)}
           placeholder={placeholder}
-          className="pl-10 pr-10 h-12 text-base bg-card"
+          className="w-full h-14 pl-12 pr-12 text-base bg-muted border-0 rounded-2xl placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/10"
         />
         {query && (
           <button
             onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -83,23 +82,23 @@ export function StationSearch({ onStationSelect, placeholder = "Cerca stazione..
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-card border border-border rounded-lg shadow-lg overflow-hidden max-h-[60vh] overflow-y-auto">
+        <div className="absolute z-50 w-full mt-3 bg-background border border-border rounded-2xl shadow-xl overflow-hidden max-h-[50vh] overflow-y-auto">
           {isLoading ? (
-            <div className="p-4 text-center text-muted-foreground">
-              <div className="animate-pulse">Ricerca in corso...</div>
+            <div className="p-6 flex items-center justify-center">
+              <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
             </div>
           ) : (
-            stations.map((station) => (
+            stations.map((station, index) => (
               <button
                 key={station.code}
                 onClick={() => handleSelect(station)}
                 className={cn(
-                  "w-full px-4 py-3 flex items-center gap-3 hover:bg-accent transition-colors",
-                  "border-b border-border last:border-b-0 text-left"
+                  "w-full px-5 py-4 flex items-center justify-between hover:bg-muted transition-colors text-left",
+                  index !== stations.length - 1 && "border-b border-border"
                 )}
               >
-                <MapPin className="h-5 w-5 text-primary shrink-0" />
-                <span className="font-medium truncate">{station.name}</span>
+                <span className="font-medium">{station.name}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </button>
             ))
           )}
