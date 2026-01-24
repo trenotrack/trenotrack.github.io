@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
-import { X, Train, MapPin, Clock, ArrowDown, CheckCircle2, Circle, AlertCircle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { X, MapPin, CheckCircle2, Circle } from 'lucide-react';
 import { 
   TrainDetails, 
   TrainStop, 
   formatTimestamp, 
-  getDelayBadgeVariant,
   searchTrainByNumber,
   getTrainDetails 
 } from '@/lib/api';
@@ -66,41 +63,6 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
     return 'pending';
   };
 
-  const renderStopIcon = (stop: TrainStop, index: number, total: number) => {
-    const status = getStopStatus(stop);
-    const isFirst = index === 0;
-    const isLast = index === total - 1;
-
-    return (
-      <div className="flex flex-col items-center">
-        {!isFirst && (
-          <div className={cn(
-            "w-0.5 h-4 -mb-1",
-            status === 'passed' ? "bg-success" : "bg-border"
-          )} />
-        )}
-        <div className={cn(
-          "rounded-full p-1 z-10",
-          status === 'passed' ? "bg-success text-success-foreground" : 
-          status === 'destination' ? "bg-primary text-primary-foreground" : 
-          "bg-muted text-muted-foreground"
-        )}>
-          {status === 'passed' ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <Circle className="h-4 w-4" />
-          )}
-        </div>
-        {!isLast && (
-          <div className={cn(
-            "w-0.5 h-4 -mt-1",
-            status === 'passed' ? "bg-success" : "bg-border"
-          )} />
-        )}
-      </div>
-    );
-  };
-
   const getBinario = (stop: TrainStop) => {
     return stop.binarioEffettivoPartenzaDescrizione || 
            stop.binarioProgrammatoPartenzaDescrizione ||
@@ -109,128 +71,145 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-      <div className="fixed inset-x-0 bottom-0 top-0 md:inset-4 md:top-auto md:bottom-auto md:max-w-lg md:mx-auto">
-        <div className="h-full md:h-auto md:max-h-[85vh] bg-card rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Train className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg">
-                  {details?.categoria || 'REG'} {trainNumber}
-                </h2>
-                {details && (
-                  <p className="text-sm text-muted-foreground">
-                    {details.origine} → {details.destinazione}
-                  </p>
-                )}
-              </div>
+    <div className="fixed inset-0 z-50 bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-background border-b border-border">
+        <div className="container max-w-md mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Treno</p>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {details?.categoria || ''} {trainNumber}
+              </h1>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <button 
+              onClick={onClose}
+              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors"
+            >
               <X className="h-5 w-5" />
-            </Button>
+            </button>
           </div>
+        </div>
+      </header>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <RefreshCw className="h-8 w-8 text-primary animate-spin mb-4" />
-                <p className="text-muted-foreground">Caricamento...</p>
+      {/* Content */}
+      <main className="container max-w-md mx-auto px-6 py-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="h-6 w-6 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin mb-4" />
+            <p className="text-muted-foreground">Caricamento...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <button 
+              onClick={fetchDetails}
+              className="px-6 py-2.5 bg-foreground text-background rounded-full font-medium"
+            >
+              Riprova
+            </button>
+          </div>
+        ) : details ? (
+          <>
+            {/* Route */}
+            <div className="mb-8">
+              <p className="text-muted-foreground text-sm mb-1">Percorso</p>
+              <p className="text-lg font-medium">
+                {details.origine} → {details.destinazione}
+              </p>
+            </div>
+
+            {/* Delay status */}
+            <div className="grid grid-cols-2 gap-6 mb-8">
+              <div>
+                <p className="text-muted-foreground text-sm mb-1">Ritardo</p>
+                <p className={cn(
+                  "text-3xl font-semibold tabular-nums",
+                  details.ritardo > 0 ? "text-destructive" : "text-foreground"
+                )}>
+                  {details.ritardo > 0 ? `+${details.ritardo}'` : 'In orario'}
+                </p>
               </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-                <p className="text-destructive font-medium mb-4">{error}</p>
-                <Button onClick={fetchDetails}>Riprova</Button>
-              </div>
-            ) : details ? (
-              <>
-                {/* Status summary */}
-                <div className="bg-muted/50 rounded-lg p-4 mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Ritardo attuale</span>
-                    <Badge variant={getDelayBadgeVariant(details.ritardo)}>
-                      {details.ritardo > 0 ? `+${details.ritardo} min` : 'In orario'}
-                    </Badge>
-                  </div>
-                  {details.stazioneUltimoRilevamento && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      <span>
-                        Ultimo rilevamento: <strong>{details.stazioneUltimoRilevamento}</strong>
-                        {details.compOraUltimoRilevamento && (
-                          <span className="text-muted-foreground"> alle {details.compOraUltimoRilevamento}</span>
-                        )}
-                      </span>
-                    </div>
+              {details.stazioneUltimoRilevamento && (
+                <div>
+                  <p className="text-muted-foreground text-sm mb-1">Ultimo rilevamento</p>
+                  <p className="font-medium truncate">{details.stazioneUltimoRilevamento}</p>
+                  {details.compOraUltimoRilevamento && (
+                    <p className="text-sm text-muted-foreground">{details.compOraUltimoRilevamento}</p>
                   )}
                 </div>
+              )}
+            </div>
 
-                {/* Stops timeline */}
-                <div className="space-y-0">
-                  {details.fermate.map((stop, index) => (
-                    <div key={stop.id} className="flex gap-3">
-                      {renderStopIcon(stop, index, details.fermate.length)}
-                      
+            {/* Divider */}
+            <div className="h-px bg-border mb-6" />
+
+            {/* Stops timeline */}
+            <div className="space-y-0">
+              {details.fermate.map((stop, index) => {
+                const status = getStopStatus(stop);
+                const isPassed = status === 'passed';
+                const isLast = index === details.fermate.length - 1;
+                const binario = getBinario(stop);
+                const theoreticalTime = formatTimestamp(stop.arrivo_teorico || stop.partenza_teorica);
+                const realTime = formatTimestamp(stop.partenzaReale || stop.arrivoReale);
+                const estimatedTime = details.ritardo > 0 && !realTime
+                  ? formatTimestamp((stop.arrivo_teorico || stop.partenza_teorica || 0) + details.ritardo * 60000)
+                  : null;
+
+                return (
+                  <div key={stop.id} className="flex gap-4">
+                    {/* Timeline */}
+                    <div className="flex flex-col items-center w-6">
                       <div className={cn(
-                        "flex-1 pb-4",
-                        index !== details.fermate.length - 1 && "border-b border-border"
-                      )}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className={cn(
-                              "font-medium truncate",
-                              getStopStatus(stop) === 'passed' && "text-muted-foreground"
-                            )}>
-                              {stop.stazione}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                              {getBinario(stop) && (
-                                <Badge variant="outline" className="text-xs">
-                                  Bin. {getBinario(stop)}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="text-right shrink-0">
-                            {/* Theoretical time */}
-                            <div className="text-sm text-muted-foreground">
-                              {formatTimestamp(stop.arrivo_teorico || stop.partenza_teorica)}
-                            </div>
-                            
-                            {/* Real/estimated time */}
-                            {stop.partenzaReale || stop.arrivoReale ? (
-                              <div className={cn(
-                                "font-bold",
-                                stop.ritardoPartenza > 0 || stop.ritardoArrivo > 0 
-                                  ? "text-delay-high" 
-                                  : "text-success"
-                              )}>
-                                {formatTimestamp(stop.partenzaReale || stop.arrivoReale)}
-                              </div>
-                            ) : details.ritardo > 0 ? (
-                              <div className="text-sm text-delay-low">
-                                ~{formatTimestamp(
-                                  (stop.arrivo_teorico || stop.partenza_teorica || 0) + details.ritardo * 60000
-                                )}
-                              </div>
-                            ) : null}
-                          </div>
+                        "w-3 h-3 rounded-full shrink-0 z-10",
+                        isPassed ? "bg-foreground" : "border-2 border-muted-foreground bg-background"
+                      )} />
+                      {!isLast && (
+                        <div className={cn(
+                          "w-px flex-1 -mt-0.5",
+                          isPassed ? "bg-foreground" : "bg-border"
+                        )} />
+                      )}
+                    </div>
+
+                    {/* Stop info */}
+                    <div className={cn(
+                      "flex-1 pb-6 min-w-0",
+                      isPassed && "opacity-50"
+                    )}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{stop.stazione}</p>
+                          {binario && (
+                            <p className="text-sm text-muted-foreground">Bin. {binario}</p>
+                          )}
+                        </div>
+                        
+                        <div className="text-right shrink-0">
+                          {realTime ? (
+                            <>
+                              <p className="text-sm text-muted-foreground line-through">{theoreticalTime}</p>
+                              <p className="font-semibold tabular-nums">{realTime}</p>
+                            </>
+                          ) : estimatedTime ? (
+                            <>
+                              <p className="text-sm text-muted-foreground line-through">{theoreticalTime}</p>
+                              <p className="font-semibold tabular-nums text-muted-foreground">~{estimatedTime}</p>
+                            </>
+                          ) : (
+                            <p className="font-semibold tabular-nums">{theoreticalTime}</p>
+                          )}
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </>
-            ) : null}
-          </div>
-        </div>
-      </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+      </main>
     </div>
   );
 }
