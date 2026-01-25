@@ -5,6 +5,34 @@ const BASE_URL = 'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno
 // Using allorigins as CORS proxy
 const corsProxy = 'https://api.allorigins.win/raw?url=';
 
+// Retry wrapper for API calls
+async function fetchWithRetry(url: string, maxRetries = 3, delay = 1000): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        return response;
+      }
+      // If not ok but not a network error, still return to let caller handle
+      if (attempt === maxRetries - 1) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`API call failed (attempt ${attempt + 1}/${maxRetries}):`, error);
+    }
+    
+    // Wait before retry (exponential backoff)
+    if (attempt < maxRetries - 1) {
+      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+    }
+  }
+  
+  throw lastError || new Error('Failed after retries');
+}
+
 export interface Station {
   name: string;
   code: string;
@@ -63,7 +91,7 @@ export async function searchStations(query: string): Promise<Station[]> {
   if (query.length < 2) return [];
   
   try {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `${corsProxy}${encodeURIComponent(`${BASE_URL}/autocompletaStazione/${encodeURIComponent(query)}`)}`
     );
     
@@ -91,7 +119,7 @@ export async function getStationDepartures(stationCode: string): Promise<Train[]
     const now = new Date();
     const dateStr = now.toUTCString();
     
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `${corsProxy}${encodeURIComponent(`${BASE_URL}/partenze/${stationCode}/${dateStr}`)}`
     );
     
@@ -107,7 +135,7 @@ export async function getStationDepartures(stationCode: string): Promise<Train[]
 
 export async function searchTrainByNumber(trainNumber: string): Promise<{ originCode: string; trainNum: string; timestamp: string } | null> {
   try {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `${corsProxy}${encodeURIComponent(`${BASE_URL}/cercaNumeroTrenoTrenoAutocomplete/${trainNumber}`)}`
     );
     
@@ -133,7 +161,7 @@ export async function searchTrainByNumber(trainNumber: string): Promise<{ origin
 
 export async function getTrainDetails(originCode: string, trainNumber: string, timestamp: string): Promise<TrainDetails | null> {
   try {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `${corsProxy}${encodeURIComponent(`${BASE_URL}/andamentoTreno/${originCode}/${trainNumber}/${timestamp}`)}`
     );
     

@@ -103,9 +103,9 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background border-b border-border">
+      <header className="shrink-0 bg-background border-b border-border">
         <div className="container max-w-md mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -125,11 +125,7 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
       </header>
 
       {/* Content */}
-      <main 
-        ref={scrollContainerRef}
-        className="container max-w-md mx-auto px-6 py-6 overflow-y-auto" 
-        style={{ maxHeight: 'calc(100vh - 80px)' }}
-      >
+      <main className="flex-1 overflow-hidden flex flex-col">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="h-6 w-6 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin mb-4" />
@@ -147,41 +143,48 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
           </div>
         ) : details ? (
           <>
-            {/* Route */}
-            <div className="mb-8">
-              <p className="text-muted-foreground text-sm mb-1">Percorso</p>
-              <p className="text-lg font-medium">
-                {details.origine} → {details.destinazione}
-              </p>
-            </div>
-
-            {/* Delay status */}
-            <div className="grid grid-cols-2 gap-6 mb-8">
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Ritardo</p>
-                <p className={cn(
-                  "text-3xl font-semibold tabular-nums",
-                  details.ritardo > 0 ? "text-destructive" : "text-foreground"
-                )}>
-                  {details.ritardo > 0 ? `+${details.ritardo}'` : 'In orario'}
+            {/* Fixed info section */}
+            <div className="shrink-0 container max-w-md mx-auto px-6 pt-6">
+              {/* Route */}
+              <div className="mb-6">
+                <p className="text-muted-foreground text-sm mb-1">Percorso</p>
+                <p className="text-lg font-medium">
+                  {details.origine} → {details.destinazione}
                 </p>
               </div>
-              {details.stazioneUltimoRilevamento && (
+
+              {/* Delay status */}
+              <div className="grid grid-cols-2 gap-6 mb-6">
                 <div>
-                  <p className="text-muted-foreground text-sm mb-1">Ultimo rilevamento</p>
-                  <p className="font-medium truncate">{details.stazioneUltimoRilevamento}</p>
-                  {details.compOraUltimoRilevamento && (
-                    <p className="text-sm text-muted-foreground">{details.compOraUltimoRilevamento}</p>
-                  )}
+                  <p className="text-muted-foreground text-sm mb-1">Ritardo</p>
+                  <p className={cn(
+                    "text-3xl font-semibold tabular-nums",
+                    details.ritardo > 0 ? "text-destructive" : "text-foreground"
+                  )}>
+                    {details.ritardo > 0 ? `+${details.ritardo}'` : 'In orario'}
+                  </p>
                 </div>
-              )}
+                {details.stazioneUltimoRilevamento && (
+                  <div>
+                    <p className="text-muted-foreground text-sm mb-1">Ultimo rilevamento</p>
+                    <p className="font-medium truncate">{details.stazioneUltimoRilevamento}</p>
+                    {details.compOraUltimoRilevamento && (
+                      <p className="text-sm text-muted-foreground">{details.compOraUltimoRilevamento}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-border" />
             </div>
 
-            {/* Divider */}
-            <div className="h-px bg-border mb-6" />
-
-            {/* Stops timeline */}
-            <div className="space-y-0">
+            {/* Scrollable stops timeline */}
+            <div 
+              ref={scrollContainerRef}
+              className="flex-1 overflow-y-auto container max-w-md mx-auto px-6 pt-6 pb-8"
+            >
+              <div className="space-y-0">
               {details.fermate.map((stop, index) => {
                 const status = getStopStatus(stop);
                 const isPassed = status === 'passed';
@@ -256,6 +259,7 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                   </div>
                 );
               })}
+              </div>
             </div>
           </>
         ) : null}

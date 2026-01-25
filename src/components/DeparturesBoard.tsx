@@ -52,10 +52,16 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
       }
     });
     
+    // Sort arrived trains by departure time descending (most recent first)
+    arrived.sort((a, b) => (b.orarioPartenza || 0) - (a.orarioPartenza || 0));
+    
     return { arrivedTrains: arrived, pendingTrains: pending };
   }, [trains]);
 
+  // Show only the most recent (first in the sorted array)
   const visibleArrivedTrains = showAllArrived ? arrivedTrains : arrivedTrains.slice(0, 1);
+  // Older trains to show above when expanded
+  const olderArrivedTrains = arrivedTrains.slice(1);
   const hasMoreArrived = arrivedTrains.length > 1;
 
   const currentTime = lastUpdate?.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
@@ -113,15 +119,7 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
             {/* Arrived trains section - collapsed by default */}
             {arrivedTrains.length > 0 && (
               <div className="mb-4">
-                {visibleArrivedTrains.map((train) => (
-                  <TrainCard
-                    key={`${train.numeroTreno}-${train.dataPartenzaTreno}`}
-                    train={train}
-                    onClick={() => setSelectedTrain(train)}
-                  />
-                ))}
-                
-                {/* Show more/less toggle */}
+                {/* Show more toggle - ABOVE the most recent train */}
                 {hasMoreArrived && (
                   <button
                     onClick={() => setShowAllArrived(!showAllArrived)}
@@ -130,15 +128,33 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
                     {showAllArrived ? (
                       <>
                         <ChevronUp className="h-4 w-4" />
-                        <span>Nascondi treni già partiti ({arrivedTrains.length - 1})</span>
+                        <span>Nascondi treni già partiti ({olderArrivedTrains.length})</span>
                       </>
                     ) : (
                       <>
                         <ChevronDown className="h-4 w-4" />
-                        <span>Mostra altri {arrivedTrains.length - 1} treni partiti</span>
+                        <span>Mostra altri {olderArrivedTrains.length} treni partiti</span>
                       </>
                     )}
                   </button>
+                )}
+                
+                {/* Older arrived trains - shown above when expanded */}
+                {showAllArrived && olderArrivedTrains.map((train) => (
+                  <TrainCard
+                    key={`${train.numeroTreno}-${train.dataPartenzaTreno}`}
+                    train={train}
+                    onClick={() => setSelectedTrain(train)}
+                  />
+                ))}
+                
+                {/* Most recent arrived train - always shown */}
+                {arrivedTrains.length > 0 && (
+                  <TrainCard
+                    key={`${arrivedTrains[0].numeroTreno}-${arrivedTrains[0].dataPartenzaTreno}`}
+                    train={arrivedTrains[0]}
+                    onClick={() => setSelectedTrain(arrivedTrains[0])}
+                  />
                 )}
               </div>
             )}
