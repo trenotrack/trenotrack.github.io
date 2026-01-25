@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { TrainCard } from '@/components/TrainCard';
 import { TrainDetailModal } from '@/components/TrainDetailModal';
 import { Station, Train, getStationDepartures } from '@/lib/api';
@@ -15,6 +15,7 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTrain, setSelectedTrain] = useState<Train | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [showAllArrived, setShowAllArrived] = useState(false);
 
   const fetchDepartures = async () => {
     setIsLoading(true);
@@ -37,6 +38,25 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
     const interval = setInterval(fetchDepartures, 30000);
     return () => clearInterval(interval);
   }, [station.code]);
+
+  // Separate arrived and pending trains
+  const { arrivedTrains, pendingTrains } = useMemo(() => {
+    const arrived: Train[] = [];
+    const pending: Train[] = [];
+    
+    trains.forEach(train => {
+      if (train.arrivato || train.inStazione) {
+        arrived.push(train);
+      } else {
+        pending.push(train);
+      }
+    });
+    
+    return { arrivedTrains: arrived, pendingTrains: pending };
+  }, [trains]);
+
+  const visibleArrivedTrains = showAllArrived ? arrivedTrains : arrivedTrains.slice(0, 1);
+  const hasMoreArrived = arrivedTrains.length > 1;
 
   const currentTime = lastUpdate?.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
@@ -90,7 +110,41 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
           </div>
         ) : (
           <div>
-            {trains.map((train) => (
+            {/* Arrived trains section - collapsed by default */}
+            {arrivedTrains.length > 0 && (
+              <div className="mb-4">
+                {visibleArrivedTrains.map((train) => (
+                  <TrainCard
+                    key={`${train.numeroTreno}-${train.dataPartenzaTreno}`}
+                    train={train}
+                    onClick={() => setSelectedTrain(train)}
+                  />
+                ))}
+                
+                {/* Show more/less toggle */}
+                {hasMoreArrived && (
+                  <button
+                    onClick={() => setShowAllArrived(!showAllArrived)}
+                    className="w-full py-3 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors border-b border-border"
+                  >
+                    {showAllArrived ? (
+                      <>
+                        <ChevronUp className="h-4 w-4" />
+                        <span>Nascondi treni già partiti ({arrivedTrains.length - 1})</span>
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        <span>Mostra altri {arrivedTrains.length - 1} treni partiti</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Pending trains */}
+            {pendingTrains.map((train) => (
               <TrainCard
                 key={`${train.numeroTreno}-${train.dataPartenzaTreno}`}
                 train={train}
