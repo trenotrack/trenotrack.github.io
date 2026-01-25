@@ -4,10 +4,17 @@ import { TrainSearch } from '@/components/TrainSearch';
 import { DeparturesBoard } from '@/components/DeparturesBoard';
 import { TrainDetailModal } from '@/components/TrainDetailModal';
 import { Station, searchTrainByNumber } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { MapPin } from 'lucide-react';
+
+// Favorite stations with preset codes
+const FAVORITE_STATIONS: Station[] = [
+  { name: 'Desio', code: 'S01320' },
+  { name: 'Lissone-Muggiò', code: 'S01321' },
+  { name: 'Monza', code: 'S01322' },
+  { name: 'Milano P. Garibaldi', code: 'S01645' },
+];
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState<'station' | 'train'>('station');
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [searchingTrain, setSearchingTrain] = useState<number | null>(null);
   const [trainSearchResult, setTrainSearchResult] = useState<{
@@ -63,96 +70,67 @@ const Index = () => {
       {/* Main content */}
       <main className="flex-1 container max-w-md mx-auto px-6 pt-12 pb-8 flex flex-col">
         {/* Header with time */}
-        <div className="mb-8">
+        <div className="mb-10">
           <p className="text-sm text-muted-foreground capitalize">{currentDate}</p>
           <h1 className="text-7xl font-light tracking-tighter tabular-nums mt-2">
             {currentTime}
           </h1>
         </div>
 
-        {/* Tab Toggle - Pill style */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex bg-muted rounded-full p-1">
-            <button
-              onClick={() => setActiveTab('station')}
-              className={cn(
-                "px-6 py-2.5 text-sm font-medium rounded-full transition-all",
-                activeTab === 'station' 
-                  ? "bg-foreground text-background" 
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Stazione
-            </button>
-            <button
-              onClick={() => setActiveTab('train')}
-              className={cn(
-                "px-6 py-2.5 text-sm font-medium rounded-full transition-all",
-                activeTab === 'train' 
-                  ? "bg-foreground text-background" 
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Treno
-            </button>
+        {/* Station Search Section */}
+        <div className="mb-10">
+          <div className="mb-4">
+            <h2 className="text-2xl font-semibold mb-1">Cerca stazione</h2>
+            <p className="text-sm text-muted-foreground">
+              Visualizza le partenze in tempo reale
+            </p>
           </div>
+          
+          {/* Favorite stations */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {FAVORITE_STATIONS.map((station) => (
+              <button
+                key={station.code}
+                onClick={() => handleStationSelect(station)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-muted hover:bg-muted/80 rounded-full text-sm font-medium transition-colors"
+              >
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                {station.name}
+              </button>
+            ))}
+          </div>
+          
+          <StationSearch 
+            onStationSelect={handleStationSelect}
+            placeholder="Oppure cerca..."
+          />
         </div>
 
-        {/* Content */}
-        <div className="flex-1">
-          {activeTab === 'station' ? (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold mb-1">Cerca stazione</h2>
-                <p className="text-sm text-muted-foreground">
-                  Visualizza le partenze in tempo reale
-                </p>
-              </div>
-              <StationSearch 
-                onStationSelect={handleStationSelect}
-                placeholder="Milano, Roma, Napoli..."
-              />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold mb-1">Cerca treno</h2>
-                <p className="text-sm text-muted-foreground">
-                  Inserisci il numero del treno
-                </p>
-              </div>
-              <TrainSearch 
-                onSearch={handleTrainSearch}
-                isLoading={isSearchingTrain}
-              />
-              
-              {isSearchingTrain && (
-                <div className="flex items-center justify-center py-8">
-                  <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
-                </div>
-              )}
-              
-              {trainSearchError && (
-                <p className="text-center text-muted-foreground py-4">
-                  {trainSearchError}
-                </p>
-              )}
+        {/* Train Search Section */}
+        <div>
+          <div className="mb-4">
+            <h2 className="text-2xl font-semibold mb-1">Cerca treno</h2>
+            <p className="text-sm text-muted-foreground">
+              Inserisci il numero del treno
+            </p>
+          </div>
+          
+          <TrainSearch 
+            onSearch={handleTrainSearch}
+            isLoading={isSearchingTrain}
+          />
+          
+          {isSearchingTrain && (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
             </div>
           )}
-        </div>
-
-        {/* Bottom info */}
-        <div className="mt-auto pt-12">
-          <div className="grid grid-cols-2 gap-8 text-sm">
-            <div>
-              <p className="text-muted-foreground mb-1">Stazione</p>
-              <p className="font-medium">Cerca per nome</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground mb-1">Treno</p>
-              <p className="font-medium">Cerca per numero</p>
-            </div>
-          </div>
+          
+          {trainSearchError && (
+            <p className="text-center text-muted-foreground py-4">
+              {trainSearchError}
+            </p>
+          )}
         </div>
       </main>
 

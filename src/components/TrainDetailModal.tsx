@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { X, MapPin, CheckCircle2, Circle } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { X } from 'lucide-react';
 import { 
   TrainDetails, 
   TrainStop, 
@@ -20,6 +20,8 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
   const [details, setDetails] = useState<TrainDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const nextStopRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchDetails = async () => {
     setIsLoading(true);
@@ -57,6 +59,23 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
     fetchDetails();
   }, [trainNumber]);
 
+  // Auto-scroll to next stop when details load
+  useEffect(() => {
+    if (details && nextStopRef.current && scrollContainerRef.current) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        nextStopRef.current?.scrollIntoView({
+          behavior: 'instant',
+          block: 'start'
+        });
+        // Offset to show the previous stop
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop -= 80;
+        }
+      }, 100);
+    }
+  }, [details]);
+
   const getStopStatus = (stop: TrainStop) => {
     if (stop.actualFermataType === 1) return 'passed';
     if (stop.tipoFermata === 'A') return 'destination';
@@ -68,6 +87,19 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
            stop.binarioProgrammatoPartenzaDescrizione ||
            stop.binarioEffettivoArrivoDescrizione ||
            stop.binarioProgrammatoArrivoDescrizione;
+  };
+
+  // Find the index of next stop (first non-passed stop)
+  const getNextStopIndex = () => {
+    if (!details) return -1;
+    return details.fermate.findIndex(stop => stop.actualFermataType !== 1);
+  };
+
+  // Calculate estimated time by adding delay to theoretical time
+  const calculateEstimatedTime = (theoreticalTimestamp: number | null, delay: number): string => {
+    if (!theoreticalTimestamp || delay === 0) return '';
+    const estimatedMs = theoreticalTimestamp + delay * 60000;
+    return formatTimestamp(estimatedMs);
   };
 
   return (
@@ -93,7 +125,11 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
       </header>
 
       {/* Content */}
-      <main className="container max-w-md mx-auto px-6 py-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+      <main 
+        ref={scrollContainerRef}
+        className="container max-w-md mx-auto px-6 py-6 overflow-y-auto" 
+        style={{ maxHeight: 'calc(100vh - 80px)' }}
+      >
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="h-6 w-6 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin mb-4" />
@@ -151,14 +187,23 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                 const isPassed = status === 'passed';
                 const isLast = index === details.fermate.length - 1;
                 const binario = getBinario(stop);
-                const theoreticalTime = formatTimestamp(stop.arrivo_teorico || stop.partenza_teorica);
+                const theoreticalTimestamp = stop.arrivo_teorico || stop.partenza_teorica;
+                const theoreticalTime = formatTimestamp(theoreticalTimestamp);
                 const realTime = formatTimestamp(stop.partenzaReale || stop.arrivoReale);
-                const estimatedTime = details.ritardo > 0 && !realTime
-                  ? formatTimestamp((stop.arrivo_teorico || stop.partenza_teorica || 0) + details.ritardo * 60000)
+                const nextStopIndex = getNextStopIndex();
+                const isNextStop = index === nextStopIndex;
+                
+                // Calculate estimated time for all non-passed stops with delay
+                const estimatedTime = !isPassed && details.ritardo > 0
+                  ? calculateEstimatedTime(theoreticalTimestamp, details.ritardo)
                   : null;
 
                 return (
-                  <div key={stop.id} className="flex gap-4">
+                  <div 
+                    key={stop.id} 
+                    className="flex gap-4"
+                    ref={isNextStop ? nextStopRef : undefined}
+                  >
                     {/* Timeline */}
                     <div className="flex flex-col items-center w-6">
                       <div className={cn(
@@ -187,17 +232,22 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                         </div>
                         
                         <div className="text-right shrink-0">
-                          {realTime ? (
+                          {realTime && realTime !== '--:--' ? (
+                            // Train has passed - show real time
                             <>
-                              <p className="text-sm text-muted-foreground line-through">{theoreticalTime}</p>
+                              {details.ritardo > 0 && (
+                                <p className="text-sm text-muted-foreground line-through">{theoreticalTime}</p>
+                              )}
                               <p className="font-semibold tabular-nums">{realTime}</p>
                             </>
                           ) : estimatedTime ? (
+                            // Train hasn't arrived but has delay - show estimated
                             <>
                               <p className="text-sm text-muted-foreground line-through">{theoreticalTime}</p>
-                              <p className="font-semibold tabular-nums text-muted-foreground">~{estimatedTime}</p>
+                              <p className="font-semibold tabular-nums">~{estimatedTime}</p>
                             </>
                           ) : (
+                            // No delay or no data - show theoretical only
                             <p className="font-semibold tabular-nums">{theoreticalTime}</p>
                           )}
                         </div>
