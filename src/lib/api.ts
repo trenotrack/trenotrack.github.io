@@ -127,7 +127,7 @@ export async function searchStations(query: string): Promise<Station[]> {
 
     if (!response.ok) return [];
 
-    const text = await response.text();
+    const text = await readProxyText(response);
     if (!text.trim()) return [];
 
     return text
@@ -153,7 +153,7 @@ export async function getStationDepartures(stationCode: string): Promise<Train[]
 
     if (!response.ok) return [];
 
-    const data = await response.json();
+    const data = await readProxyJson<Train[]>(response);
     return data || [];
   } catch (error) {
     console.error('Error fetching departures:', error);
@@ -167,7 +167,7 @@ export async function searchTrainByNumber(trainNumber: string): Promise<{ origin
 
     if (!response.ok) return null;
 
-    const text = await response.text();
+    const text = await readProxyText(response);
     if (!text.trim()) return null;
 
     // Format: "25031 - COMO S.GIOVANNI - 24/01/26|25031-S01307-1769209200000"
@@ -191,7 +191,7 @@ export async function getTrainDetails(originCode: string, trainNumber: string, t
 
     if (!response.ok) return null;
 
-    const data = await response.json();
+    const data = await readProxyJson<TrainDetails>(response);
     return data;
   } catch (error) {
     console.error('Error fetching train details:', error);
