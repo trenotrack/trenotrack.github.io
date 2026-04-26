@@ -98,17 +98,15 @@ export interface TrainDetails {
 
 export async function searchStations(query: string): Promise<Station[]> {
   if (query.length < 2) return [];
-  
+
   try {
-    const response = await fetchWithRetry(
-      `${corsProxy}${encodeURIComponent(`${BASE_URL}/autocompletaStazione/${encodeURIComponent(query)}`)}`
-    );
-    
+    const response = await fetchWithRetry(buildUrl(`autocompletaStazione/${encodeURIComponent(query)}`));
+
     if (!response.ok) return [];
-    
+
     const text = await response.text();
     if (!text.trim()) return [];
-    
+
     return text
       .split('\n')
       .filter(line => line.trim())
@@ -127,13 +125,11 @@ export async function getStationDepartures(stationCode: string): Promise<Train[]
   try {
     const now = new Date();
     const dateStr = now.toUTCString();
-    
-    const response = await fetchWithRetry(
-      `${corsProxy}${encodeURIComponent(`${BASE_URL}/partenze/${stationCode}/${dateStr}`)}`
-    );
-    
+
+    const response = await fetchWithRetry(buildUrl(`partenze/${stationCode}/${dateStr}`));
+
     if (!response.ok) return [];
-    
+
     const data = await response.json();
     return data || [];
   } catch (error) {
@@ -144,22 +140,20 @@ export async function getStationDepartures(stationCode: string): Promise<Train[]
 
 export async function searchTrainByNumber(trainNumber: string): Promise<{ originCode: string; trainNum: string; timestamp: string } | null> {
   try {
-    const response = await fetchWithRetry(
-      `${corsProxy}${encodeURIComponent(`${BASE_URL}/cercaNumeroTrenoTrenoAutocomplete/${trainNumber}`)}`
-    );
-    
+    const response = await fetchWithRetry(buildUrl(`cercaNumeroTrenoTrenoAutocomplete/${trainNumber}`));
+
     if (!response.ok) return null;
-    
+
     const text = await response.text();
     if (!text.trim()) return null;
-    
+
     // Format: "25031 - COMO S.GIOVANNI - 24/01/26|25031-S01307-1769209200000"
     const firstLine = text.split('\n')[0];
     if (!firstLine) return null;
-    
+
     const parts = firstLine.split('|');
     if (parts.length < 2) return null;
-    
+
     const [trainNum, originCode, timestamp] = parts[1].split('-');
     return { trainNum, originCode, timestamp };
   } catch (error) {
@@ -170,12 +164,10 @@ export async function searchTrainByNumber(trainNumber: string): Promise<{ origin
 
 export async function getTrainDetails(originCode: string, trainNumber: string, timestamp: string): Promise<TrainDetails | null> {
   try {
-    const response = await fetchWithRetry(
-      `${corsProxy}${encodeURIComponent(`${BASE_URL}/andamentoTreno/${originCode}/${trainNumber}/${timestamp}`)}`
-    );
-    
+    const response = await fetchWithRetry(buildUrl(`andamentoTreno/${originCode}/${trainNumber}/${timestamp}`));
+
     if (!response.ok) return null;
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
