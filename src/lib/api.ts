@@ -2,34 +2,43 @@
 
 const BASE_URL = 'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
 
-// Using allorigins as CORS proxy
-const corsProxy = 'https://api.allorigins.win/raw?url=';
+// Using corsproxy.io - faster and more reliable than allorigins
+const corsProxy = 'https://corsproxy.io/?url=';
 
-// Retry wrapper for API calls
-async function fetchWithRetry(url: string, maxRetries = 3, delay = 1000): Promise<Response> {
+function buildUrl(path: string): string {
+  return `${corsProxy}${encodeURIComponent(`${BASE_URL}/${path}`)}`;
+}
+
+// Retry wrapper with timeout + fast retries (no aggressive backoff)
+async function fetchWithRetry(
+  url: string,
+  { maxRetries = 2, timeoutMs = 6000, retryDelayMs = 400 }: { maxRetries?: number; timeoutMs?: number; retryDelayMs?: number } = {}
+): Promise<Response> {
   let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
-      const response = await fetch(url);
-      if (response.ok) {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      // Treat 5xx and 429 as retryable; return everything else (incl. 4xx) immediately
+      if (response.ok || (response.status < 500 && response.status !== 429)) {
         return response;
       }
-      // If not ok but not a network error, still return to let caller handle
-      if (attempt === maxRetries - 1) {
-        return response;
-      }
+      lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
+      clearTimeout(timeoutId);
       lastError = error as Error;
-      console.warn(`API call failed (attempt ${attempt + 1}/${maxRetries}):`, error);
+      console.warn(`API call failed (attempt ${attempt + 1}/${maxRetries + 1}):`, (error as Error).message);
     }
-    
-    // Wait before retry (exponential backoff)
-    if (attempt < maxRetries - 1) {
-      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
     }
   }
-  
+
   throw lastError || new Error('Failed after retries');
 }
 
@@ -89,17 +98,15 @@ export interface TrainDetails {
 
 export async function searchStations(query: string): Promise<Station[]> {
   if (query.length < 2) return [];
-  
+
   try {
-    const response = await fetchWithRetry(
-      `${corsProxy}${encodeURIComponent(`${BASE_URL}/autocompletaStazione/${encodeURIComponent(query)}`)}`
-    );
-    
+    const response = await fetchWithRetry(buildUrl(`autocompletaStazione/${encodeURIComponent(query)}`));
+
     if (!response.ok) return [];
-    
+
     const text = await response.text();
     if (!text.trim()) return [];
-    
+
     return text
       .split('\n')
       .filter(line => line.trim())
@@ -118,13 +125,11 @@ export async function getStationDepartures(stationCode: string): Promise<Train[]
   try {
     const now = new Date();
     const dateStr = now.toUTCString();
-    
-    const response = await fetchWithRetry(
-      `${corsProxy}${encodeURIComponent(`${BASE_URL}/partenze/${stationCode}/${dateStr}`)}`
-    );
-    
+
+    const response = await fetchWithRetry(buildUrl(`partenze/${stationCode}/${dateStr}`));
+
     if (!response.ok) return [];
-    
+
     const data = await response.json();
     return data || [];
   } catch (error) {
@@ -135,22 +140,20 @@ export async function getStationDepartures(stationCode: string): Promise<Train[]
 
 export async function searchTrainByNumber(trainNumber: string): Promise<{ originCode: string; trainNum: string; timestamp: string } | null> {
   try {
-    const response = await fetchWithRetry(
-      `${corsProxy}${encodeURIComponent(`${BASE_URL}/cercaNumeroTrenoTrenoAutocomplete/${trainNumber}`)}`
-    );
-    
+    const response = await fetchWithRetry(buildUrl(`cercaNumeroTrenoTrenoAutocomplete/${trainNumber}`));
+
     if (!response.ok) return null;
-    
+
     const text = await response.text();
     if (!text.trim()) return null;
-    
+
     // Format: "25031 - COMO S.GIOVANNI - 24/01/26|25031-S01307-1769209200000"
     const firstLine = text.split('\n')[0];
     if (!firstLine) return null;
-    
+
     const parts = firstLine.split('|');
     if (parts.length < 2) return null;
-    
+
     const [trainNum, originCode, timestamp] = parts[1].split('-');
     return { trainNum, originCode, timestamp };
   } catch (error) {
@@ -161,12 +164,10 @@ export async function searchTrainByNumber(trainNumber: string): Promise<{ origin
 
 export async function getTrainDetails(originCode: string, trainNumber: string, timestamp: string): Promise<TrainDetails | null> {
   try {
-    const response = await fetchWithRetry(
-      `${corsProxy}${encodeURIComponent(`${BASE_URL}/andamentoTreno/${originCode}/${trainNumber}/${timestamp}`)}`
-    );
-    
+    const response = await fetchWithRetry(buildUrl(`andamentoTreno/${originCode}/${trainNumber}/${timestamp}`));
+
     if (!response.ok) return null;
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
