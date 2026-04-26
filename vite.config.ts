@@ -52,7 +52,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\.allorigins\.win\/.*/i,
+            urlPattern: /^https:\/\/whateverorigin\.org\/.*/i,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",

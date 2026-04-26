@@ -2,11 +2,34 @@
 
 const BASE_URL = 'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
 
-// Using corsproxy.io - faster and more reliable than allorigins
-const corsProxy = 'https://corsproxy.io/?url=';
+// Using whateverorigin.org as CORS proxy (returns JSON envelope { contents })
+const corsProxy = 'https://whateverorigin.org/get?url=';
 
 function buildUrl(path: string): string {
   return `${corsProxy}${encodeURIComponent(`${BASE_URL}/${path}`)}`;
+}
+
+// whateverorigin returns { contents: "<actual body>" }, so unwrap it
+async function readProxyText(response: Response): Promise<string> {
+  const raw = await response.text();
+  if (!raw) return '';
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.contents === 'string') return parsed.contents;
+  } catch {
+    // Not the envelope - return as-is
+  }
+  return raw;
+}
+
+async function readProxyJson<T>(response: Response): Promise<T | null> {
+  const text = await readProxyText(response);
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
 }
 
 // Retry wrapper with timeout + fast retries (no aggressive backoff)
@@ -104,7 +127,7 @@ export async function searchStations(query: string): Promise<Station[]> {
 
     if (!response.ok) return [];
 
-    const text = await response.text();
+    const text = await readProxyText(response);
     if (!text.trim()) return [];
 
     return text
@@ -130,7 +153,7 @@ export async function getStationDepartures(stationCode: string): Promise<Train[]
 
     if (!response.ok) return [];
 
-    const data = await response.json();
+    const data = await readProxyJson<Train[]>(response);
     return data || [];
   } catch (error) {
     console.error('Error fetching departures:', error);
@@ -144,7 +167,7 @@ export async function searchTrainByNumber(trainNumber: string): Promise<{ origin
 
     if (!response.ok) return null;
 
-    const text = await response.text();
+    const text = await readProxyText(response);
     if (!text.trim()) return null;
 
     // Format: "25031 - COMO S.GIOVANNI - 24/01/26|25031-S01307-1769209200000"
@@ -168,7 +191,7 @@ export async function getTrainDetails(originCode: string, trainNumber: string, t
 
     if (!response.ok) return null;
 
-    const data = await response.json();
+    const data = await readProxyJson<TrainDetails>(response);
     return data;
   } catch (error) {
     console.error('Error fetching train details:', error);
