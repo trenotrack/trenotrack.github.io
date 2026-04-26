@@ -26,22 +26,26 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
   const fetchDetails = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // First search for train to get proper parameters
-      const searchResult = await searchTrainByNumber(trainNumber.toString());
-      
-      if (!searchResult) {
-        setError('Treno non trovato');
-        setIsLoading(false);
-        return;
+      let originCodeToUse = originCode;
+      let trainNumToUse = trainNumber.toString();
+      let timestampToUse: string | null = dataPartenza ? dataPartenza.toString() : null;
+
+      // Skip the extra search call when we already have all params (clicked from board)
+      if (!timestampToUse || !originCodeToUse) {
+        const searchResult = await searchTrainByNumber(trainNumber.toString());
+        if (!searchResult) {
+          setError('Treno non trovato');
+          setIsLoading(false);
+          return;
+        }
+        originCodeToUse = searchResult.originCode;
+        trainNumToUse = searchResult.trainNum;
+        timestampToUse = searchResult.timestamp;
       }
 
-      const trainDetails = await getTrainDetails(
-        searchResult.originCode,
-        searchResult.trainNum,
-        searchResult.timestamp
-      );
+      const trainDetails = await getTrainDetails(originCodeToUse, trainNumToUse, timestampToUse!);
 
       if (trainDetails) {
         setDetails(trainDetails);
@@ -51,7 +55,7 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
     } catch (e) {
       setError('Errore di connessione');
     }
-    
+
     setIsLoading(false);
   };
 
