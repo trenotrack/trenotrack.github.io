@@ -2,11 +2,34 @@
 
 const BASE_URL = 'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
 
-// Using corsproxy.io - faster and more reliable than allorigins
-const corsProxy = 'https://corsproxy.io/?url=';
+// Using whateverorigin.org as CORS proxy (returns JSON envelope { contents })
+const corsProxy = 'https://whateverorigin.org/get?url=';
 
 function buildUrl(path: string): string {
   return `${corsProxy}${encodeURIComponent(`${BASE_URL}/${path}`)}`;
+}
+
+// whateverorigin returns { contents: "<actual body>" }, so unwrap it
+async function readProxyText(response: Response): Promise<string> {
+  const raw = await response.text();
+  if (!raw) return '';
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.contents === 'string') return parsed.contents;
+  } catch {
+    // Not the envelope - return as-is
+  }
+  return raw;
+}
+
+async function readProxyJson<T>(response: Response): Promise<T | null> {
+  const text = await readProxyText(response);
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
 }
 
 // Retry wrapper with timeout + fast retries (no aggressive backoff)
