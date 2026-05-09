@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { TrainCard } from '@/components/TrainCard';
 import { TrainDetailModal } from '@/components/TrainDetailModal';
 import { Station, Train, getStationDepartures } from '@/lib/api';
@@ -16,18 +16,23 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
   const [selectedTrain, setSelectedTrain] = useState<Train | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showAllArrived, setShowAllArrived] = useState(false);
+  const [error, setError] = useState<{ message: string; status?: number } | null>(null);
 
   const fetchDepartures = async () => {
     setIsLoading(true);
-    const data = await getStationDepartures(station.code);
-    // Sort by departure time
-    data.sort((a, b) => {
-      const timeA = a.orarioPartenza || 0;
-      const timeB = b.orarioPartenza || 0;
-      return timeA - timeB;
-    });
-    setTrains(data);
-    setLastUpdate(new Date());
+    setError(null);
+    try {
+      const data = await getStationDepartures(station.code);
+      data.sort((a, b) => {
+        const timeA = a.orarioPartenza || 0;
+        const timeB = b.orarioPartenza || 0;
+        return timeA - timeB;
+      });
+      setTrains(data);
+      setLastUpdate(new Date());
+    } catch (e: any) {
+      setError({ message: e?.message || 'Errore sconosciuto', status: e?.status });
+    }
     setIsLoading(false);
   };
 
