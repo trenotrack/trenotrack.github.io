@@ -135,21 +135,26 @@ export async function searchStations(query: string): Promise<Station[]> {
   }
 }
 
-export async function getStationDepartures(stationCode: string): Promise<Train[]> {
-  try {
-    const now = new Date();
-    const dateStr = now.toUTCString();
-
-    const response = await fetchWithRetry(buildUrl(`partenze/${stationCode}/${dateStr}`));
-
-    if (!response.ok) return [];
-
-    const data = await readProxyJson<Train[]>(response);
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching departures:', error);
-    return [];
+export class ApiError extends Error {
+  status?: number;
+  constructor(message: string, status?: number) {
+    super(message);
+    this.status = status;
   }
+}
+
+export async function getStationDepartures(stationCode: string): Promise<Train[]> {
+  const now = new Date();
+  const dateStr = now.toUTCString();
+
+  const response = await fetchWithRetry(buildUrl(`partenze/${stationCode}/${dateStr}`));
+
+  if (!response.ok) {
+    throw new ApiError(`HTTP ${response.status}`, response.status);
+  }
+
+  const data = await readProxyJson<Train[]>(response);
+  return data || [];
 }
 
 export async function searchTrainByNumber(trainNumber: string): Promise<{ originCode: string; trainNum: string; timestamp: string } | null> {

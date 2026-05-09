@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { TrainCard } from '@/components/TrainCard';
 import { TrainDetailModal } from '@/components/TrainDetailModal';
 import { Station, Train, getStationDepartures } from '@/lib/api';
@@ -16,18 +16,23 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
   const [selectedTrain, setSelectedTrain] = useState<Train | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showAllArrived, setShowAllArrived] = useState(false);
+  const [error, setError] = useState<{ message: string; status?: number } | null>(null);
 
   const fetchDepartures = async () => {
     setIsLoading(true);
-    const data = await getStationDepartures(station.code);
-    // Sort by departure time
-    data.sort((a, b) => {
-      const timeA = a.orarioPartenza || 0;
-      const timeB = b.orarioPartenza || 0;
-      return timeA - timeB;
-    });
-    setTrains(data);
-    setLastUpdate(new Date());
+    setError(null);
+    try {
+      const data = await getStationDepartures(station.code);
+      data.sort((a, b) => {
+        const timeA = a.orarioPartenza || 0;
+        const timeB = b.orarioPartenza || 0;
+        return timeA - timeB;
+      });
+      setTrains(data);
+      setLastUpdate(new Date());
+    } catch (e: any) {
+      setError({ message: e?.message || 'Errore sconosciuto', status: e?.status });
+    }
     setIsLoading(false);
   };
 
@@ -109,6 +114,20 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
           <div className="flex flex-col items-center justify-center py-20">
             <div className="h-6 w-6 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin mb-4" />
             <p className="text-muted-foreground">Caricamento...</p>
+          </div>
+        ) : error && trains.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <AlertTriangle className="h-10 w-10 text-destructive mb-4" />
+            <p className="font-medium mb-1">Errore nella richiesta</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              {error.status ? `Codice ${error.status}` : error.message}
+            </p>
+            <button
+              onClick={fetchDepartures}
+              className="px-6 py-2.5 bg-foreground text-background rounded-full font-medium"
+            >
+              Riprova
+            </button>
           </div>
         ) : trains.length === 0 ? (
           <div className="text-center py-20">

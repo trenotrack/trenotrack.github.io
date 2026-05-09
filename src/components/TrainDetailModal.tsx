@@ -86,6 +86,23 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
     return 'pending';
   };
 
+  // Suppressed stops: those before first 'P' or after last 'A'
+  const getSuppressedSet = () => {
+    if (!details) return new Set<number>();
+    const suppressed = new Set<number>();
+    const fermate = details.fermate;
+    const firstP = fermate.findIndex(s => s.tipoFermata === 'P');
+    let lastA = -1;
+    for (let i = fermate.length - 1; i >= 0; i--) {
+      if (fermate[i].tipoFermata === 'A') { lastA = i; break; }
+    }
+    fermate.forEach((_, idx) => {
+      if (firstP !== -1 && idx < firstP) suppressed.add(idx);
+      if (lastA !== -1 && idx > lastA) suppressed.add(idx);
+    });
+    return suppressed;
+  };
+
   const getBinario = (stop: TrainStop) => {
     return stop.binarioEffettivoPartenzaDescrizione || 
            stop.binarioProgrammatoPartenzaDescrizione ||
@@ -189,19 +206,22 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
               className="flex-1 overflow-y-auto container max-w-md mx-auto px-6 pt-6 pb-8"
             >
               <div className="space-y-0">
-              {details.fermate.map((stop, index) => {
+              {(() => {
+                const suppressedSet = getSuppressedSet();
+                const nextStopIndex = getNextStopIndex();
+                return details.fermate.map((stop, index) => {
+                const isSuppressed = suppressedSet.has(index);
                 const status = getStopStatus(stop);
-                const isPassed = status === 'passed';
+                const isPassed = !isSuppressed && status === 'passed';
                 const isLast = index === details.fermate.length - 1;
                 const binario = getBinario(stop);
                 const theoreticalTimestamp = stop.arrivo_teorico || stop.partenza_teorica;
                 const theoreticalTime = formatTimestamp(theoreticalTimestamp);
                 const realTime = formatTimestamp(stop.partenzaReale || stop.arrivoReale);
-                const nextStopIndex = getNextStopIndex();
-                const isNextStop = index === nextStopIndex;
+                const isNextStop = !isSuppressed && index === nextStopIndex;
                 
-                // Calculate estimated time for all non-passed stops with delay
-                const estimatedTime = !isPassed && details.ritardo > 0
+                // Calculate estimated time for all non-passed, non-suppressed stops with delay
+                const estimatedTime = !isPassed && !isSuppressed && details.ritardo > 0
                   ? calculateEstimatedTime(theoreticalTimestamp, details.ritardo)
                   : null;
 
@@ -215,7 +235,11 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                     <div className="flex flex-col items-center w-6">
                       <div className={cn(
                         "w-3 h-3 rounded-full shrink-0 z-10",
-                        isPassed ? "bg-foreground" : "border-2 border-muted-foreground bg-background"
+                        isSuppressed
+                          ? "border-2 border-muted bg-background"
+                          : isPassed
+                            ? "bg-foreground"
+                            : "border-2 border-muted-foreground bg-background"
                       )} />
                       {!isLast && (
                         <div className={cn(
@@ -228,18 +252,26 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                     {/* Stop info */}
                     <div className={cn(
                       "flex-1 pb-6 min-w-0",
-                      isPassed && "opacity-50"
+                      isPassed && "opacity-50",
+                      isSuppressed && "opacity-40 text-muted-foreground"
                     )}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="font-medium truncate">{stop.stazione}</p>
-                          {binario && (
+                          <p className={cn(
+                            "font-medium truncate",
+                            isSuppressed && "line-through"
+                          )}>{stop.stazione}</p>
+                          {isSuppressed ? (
+                            <p className="text-xs uppercase tracking-wide text-destructive/70">Soppressa</p>
+                          ) : binario && (
                             <p className="text-sm text-muted-foreground">Bin. {binario}</p>
                           )}
                         </div>
                         
                         <div className="text-right shrink-0">
-                          {realTime && realTime !== '--:--' ? (
+                          {isSuppressed ? (
+                            <p className="font-semibold tabular-nums line-through">{theoreticalTime}</p>
+                          ) : realTime && realTime !== '--:--' ? (
                             // Train has passed - show real time
                             <>
                               {details.ritardo > 0 && (
@@ -262,7 +294,8 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                     </div>
                   </div>
                 );
-              })}
+                });
+              })()}
               </div>
             </div>
           </>
