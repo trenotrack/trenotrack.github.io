@@ -115,6 +115,20 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
             <div className="h-6 w-6 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin mb-4" />
             <p className="text-muted-foreground">Caricamento...</p>
           </div>
+        ) : error && trains.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <AlertTriangle className="h-10 w-10 text-destructive mb-4" />
+            <p className="font-medium mb-1">Errore nella richiesta</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              {error.status ? `Codice ${error.status}` : error.message}
+            </p>
+            <button
+              onClick={fetchDepartures}
+              className="px-6 py-2.5 bg-foreground text-background rounded-full font-medium"
+            >
+              Riprova
+            </button>
+          </div>
         ) : trains.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground">Nessun treno in partenza</p>
