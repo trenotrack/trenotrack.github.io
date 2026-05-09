@@ -86,6 +86,23 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
     return 'pending';
   };
 
+  // Suppressed stops: those before first 'P' or after last 'A'
+  const getSuppressedSet = () => {
+    if (!details) return new Set<number>();
+    const suppressed = new Set<number>();
+    const fermate = details.fermate;
+    const firstP = fermate.findIndex(s => s.tipoFermata === 'P');
+    let lastA = -1;
+    for (let i = fermate.length - 1; i >= 0; i--) {
+      if (fermate[i].tipoFermata === 'A') { lastA = i; break; }
+    }
+    fermate.forEach((_, idx) => {
+      if (firstP !== -1 && idx < firstP) suppressed.add(idx);
+      if (lastA !== -1 && idx > lastA) suppressed.add(idx);
+    });
+    return suppressed;
+  };
+
   const getBinario = (stop: TrainStop) => {
     return stop.binarioEffettivoPartenzaDescrizione || 
            stop.binarioProgrammatoPartenzaDescrizione ||
