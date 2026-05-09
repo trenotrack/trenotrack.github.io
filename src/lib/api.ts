@@ -108,6 +108,8 @@ export interface TrainDetails {
   fermate: TrainStop[];
   nonPartito: boolean;
   arrivato: boolean;
+  tipoTreno?: string; // ST = soppresso, DV = deviato, PP/SI/SF = parzialmente soppresso
+  subTitle?: string;
 }
 
 export async function searchStations(query: string): Promise<Station[]> {
