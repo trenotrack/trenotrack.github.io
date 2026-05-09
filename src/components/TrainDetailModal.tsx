@@ -86,11 +86,15 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
     return 'pending';
   };
 
-  // Suppressed stops: those before first 'P' or after last 'A'
+  // Suppressed stops: those before first 'P' or after last 'A', or all if train is fully suppressed (ST)
   const getSuppressedSet = () => {
     if (!details) return new Set<number>();
     const suppressed = new Set<number>();
     const fermate = details.fermate;
+    if (details.tipoTreno === 'ST') {
+      fermate.forEach((_, idx) => suppressed.add(idx));
+      return suppressed;
+    }
     const firstP = fermate.findIndex(s => s.tipoFermata === 'P');
     let lastA = -1;
     for (let i = fermate.length - 1; i >= 0; i--) {
