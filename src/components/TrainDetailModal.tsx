@@ -86,11 +86,15 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
     return 'pending';
   };
 
-  // Suppressed stops: those before first 'P' or after last 'A'
+  // Suppressed stops: those before first 'P' or after last 'A', or all if train is fully suppressed (ST)
   const getSuppressedSet = () => {
     if (!details) return new Set<number>();
     const suppressed = new Set<number>();
     const fermate = details.fermate;
+    if (details.tipoTreno === 'ST') {
+      fermate.forEach((_, idx) => suppressed.add(idx));
+      return suppressed;
+    }
     const firstP = fermate.findIndex(s => s.tipoFermata === 'P');
     let lastA = -1;
     for (let i = fermate.length - 1; i >= 0; i--) {
@@ -175,26 +179,50 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
               </div>
 
               {/* Delay status */}
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <p className="text-muted-foreground text-sm mb-1">Ritardo</p>
-                  <p className={cn(
-                    "text-3xl font-semibold tabular-nums",
-                    details.ritardo > 0 ? "text-destructive" : "text-foreground"
-                  )}>
-                    {details.ritardo > 0 ? `+${details.ritardo}'` : 'In orario'}
-                  </p>
-                </div>
-                {details.stazioneUltimoRilevamento && (
-                  <div>
-                    <p className="text-muted-foreground text-sm mb-1">Ultimo rilevamento</p>
-                    <p className="font-medium truncate">{details.stazioneUltimoRilevamento}</p>
-                    {details.compOraUltimoRilevamento && (
-                      <p className="text-sm text-muted-foreground">{details.compOraUltimoRilevamento}</p>
+              {(() => {
+                const isSoppresso = details.tipoTreno === 'ST';
+                const isDeviato = details.tipoTreno === 'DV';
+                const isPartial = ['PP', 'SI', 'SF'].includes(details.tipoTreno || '') ||
+                  (!isSoppresso && (() => {
+                    const s = getSuppressedSet();
+                    return s.size > 0;
+                  })());
+
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-6 mb-2">
+                      <div>
+                        <p className="text-muted-foreground text-sm mb-1">Stato</p>
+                        {isSoppresso ? (
+                          <p className="text-3xl font-semibold text-destructive">Soppresso</p>
+                        ) : isDeviato ? (
+                          <p className="text-3xl font-semibold text-[hsl(217,91%,55%)]">Deviato</p>
+                        ) : (
+                          <p className={cn(
+                            "text-3xl font-semibold tabular-nums",
+                            details.ritardo > 0 ? "text-destructive" : "text-foreground"
+                          )}>
+                            {details.ritardo > 0 ? `+${details.ritardo}'` : 'In orario'}
+                          </p>
+                        )}
+                      </div>
+                      {details.stazioneUltimoRilevamento && !isSoppresso && (
+                        <div>
+                          <p className="text-muted-foreground text-sm mb-1">Ultimo rilevamento</p>
+                          <p className="font-medium truncate">{details.stazioneUltimoRilevamento}</p>
+                          {details.compOraUltimoRilevamento && (
+                            <p className="text-sm text-muted-foreground">{details.compOraUltimoRilevamento}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {isPartial && details.subTitle && (
+                      <p className="text-sm text-destructive mb-6">{details.subTitle}</p>
                     )}
-                  </div>
-                )}
-              </div>
+                    {!isPartial && <div className="mb-6" />}
+                  </>
+                );
+              })()}
 
               {/* Divider */}
               <div className="h-px bg-border" />
