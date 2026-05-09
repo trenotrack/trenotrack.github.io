@@ -188,6 +188,22 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                     return s.size > 0;
                   })());
 
+                // Detect "stuck" train: last detection is 15+ minutes earlier than the
+                // scheduled arrival at the next stop, and that scheduled time has passed.
+                const isStuck = (() => {
+                  if (isSoppresso || details.ritardo > 0) return false;
+                  if (!details.oraUltimoRilevamento) return false;
+                  const nextStop = details.fermate.find(s => s.actualFermataType !== 1);
+                  if (!nextStop) return false;
+                  const nextScheduled = nextStop.arrivo_teorico || nextStop.partenza_teorica;
+                  if (!nextScheduled) return false;
+                  const now = Date.now();
+                  return (
+                    nextScheduled - details.oraUltimoRilevamento >= 15 * 60_000 &&
+                    now >= nextScheduled
+                  );
+                })();
+
                 return (
                   <>
                     <div className="grid grid-cols-2 gap-6 mb-2">
@@ -197,6 +213,8 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                           <p className="text-3xl font-semibold text-destructive">Soppresso</p>
                         ) : isDeviato ? (
                           <p className="text-3xl font-semibold text-[hsl(217,91%,55%)]">Deviato</p>
+                        ) : isStuck ? (
+                          <p className="text-3xl font-semibold text-destructive">Alert!</p>
                         ) : (
                           <p className={cn(
                             "text-3xl font-semibold tabular-nums",
@@ -204,6 +222,9 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                           )}>
                             {details.ritardo > 0 ? `+${details.ritardo}'` : 'In orario'}
                           </p>
+                        )}
+                        {isStuck && (
+                          <p className="text-xs text-destructive mt-1">Treno fermo: nessun rilevamento recente</p>
                         )}
                       </div>
                       {details.stazioneUltimoRilevamento && !isSoppresso && (
