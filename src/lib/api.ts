@@ -105,6 +105,7 @@ export interface TrainDetails {
   ritardo: number;
   stazioneUltimoRilevamento: string | null;
   compOraUltimoRilevamento: string | null;
+  oraUltimoRilevamento: number | null;
   fermate: TrainStop[];
   nonPartito: boolean;
   arrivato: boolean;
