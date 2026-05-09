@@ -188,20 +188,28 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                     return s.size > 0;
                   })());
 
-                // Detect "stuck" train: last detection is 15+ minutes earlier than the
-                // scheduled arrival at the next stop, and that scheduled time has passed.
+                // Detect "stuck" train: there is a stop whose ESTIMATED arrival
+                // (scheduled + current delay) is at least 15 min before NOW, but the
+                // last detection was before that estimated arrival — meaning the train
+                // should have already reached that stop but didn't.
                 const isStuck = (() => {
-                  if (isSoppresso || details.ritardo > 0) return false;
+                  if (isSoppresso) return false;
                   if (!details.oraUltimoRilevamento) return false;
-                  const nextStop = details.fermate.find(s => s.actualFermataType !== 1);
-                  if (!nextStop) return false;
-                  const nextScheduled = nextStop.arrivo_teorico || nextStop.partenza_teorica;
-                  if (!nextScheduled) return false;
                   const now = Date.now();
-                  return (
-                    nextScheduled - details.oraUltimoRilevamento >= 15 * 60_000 &&
-                    now >= nextScheduled
-                  );
+                  const delayMs = (details.ritardo || 0) * 60_000;
+                  for (const stop of details.fermate) {
+                    if (stop.actualFermataType === 1) continue;
+                    const scheduled = stop.arrivo_teorico || stop.partenza_teorica;
+                    if (!scheduled) continue;
+                    const estimated = scheduled + delayMs;
+                    if (
+                      now - estimated >= 15 * 60_000 &&
+                      details.oraUltimoRilevamento < estimated
+                    ) {
+                      return true;
+                    }
+                  }
+                  return false;
                 })();
 
                 return (
@@ -223,9 +231,6 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                             {details.ritardo > 0 ? `+${details.ritardo}'` : 'In orario'}
                           </p>
                         )}
-                        {isStuck && (
-                          <p className="text-xs text-destructive mt-1">Treno fermo: nessun rilevamento recente</p>
-                        )}
                       </div>
                       {details.stazioneUltimoRilevamento && !isSoppresso && (
                         <div>
@@ -237,10 +242,13 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                         </div>
                       )}
                     </div>
-                    {isPartial && details.subTitle && (
+                    {isStuck && (
+                      <p className="text-sm text-destructive mb-6">Il treno non invia più la posizione</p>
+                    )}
+                    {!isStuck && isPartial && details.subTitle && (
                       <p className="text-sm text-destructive mb-6">{details.subTitle}</p>
                     )}
-                    {!isPartial && <div className="mb-6" />}
+                    {!isStuck && !isPartial && <div className="mb-6" />}
                   </>
                 );
               })()}
