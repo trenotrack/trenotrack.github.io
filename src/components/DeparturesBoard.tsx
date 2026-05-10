@@ -163,7 +163,7 @@ export function DeparturesBoard({ station, onBack, onTrainSelect, selectedTrainK
                   <TrainCard
                     key={`${train.numeroTreno}-${train.dataPartenzaTreno}`}
                     train={train}
-                    onClick={() => setSelectedTrain(train)}
+                    onClick={() => onTrainSelect(train)}
                   />
                 ))}
                 
@@ -172,7 +172,7 @@ export function DeparturesBoard({ station, onBack, onTrainSelect, selectedTrainK
                   <TrainCard
                     key={`${arrivedTrains[0].numeroTreno}-${arrivedTrains[0].dataPartenzaTreno}`}
                     train={arrivedTrains[0]}
-                    onClick={() => setSelectedTrain(arrivedTrains[0])}
+                    onClick={() => onTrainSelect(arrivedTrains[0])}
                   />
                 )}
               </div>
@@ -183,7 +183,7 @@ export function DeparturesBoard({ station, onBack, onTrainSelect, selectedTrainK
               <TrainCard
                 key={`${train.numeroTreno}-${train.dataPartenzaTreno}`}
                 train={train}
-                onClick={() => setSelectedTrain(train)}
+                onClick={() => onTrainSelect(train)}
               />
             ))}
           </div>
@@ -192,16 +192,6 @@ export function DeparturesBoard({ station, onBack, onTrainSelect, selectedTrainK
 
       {/* Bottom spacing */}
       <div className="h-8" />
-
-      {/* Train detail modal */}
-      {selectedTrain && (
-        <TrainDetailModal
-          trainNumber={selectedTrain.numeroTreno}
-          originCode={selectedTrain.codOrigine}
-          dataPartenza={selectedTrain.dataPartenzaTreno}
-          onClose={() => setSelectedTrain(null)}
-        />
-      )}
     </div>
   );
 }
