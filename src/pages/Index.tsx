@@ -120,6 +120,7 @@ const Index = () => {
           </div>
           
           <TrainSearch 
+            key={trainSearchKey}
             onSearch={handleTrainSearch}
             isLoading={isSearchingTrain}
           />
