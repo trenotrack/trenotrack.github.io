@@ -1,19 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, RefreshCw, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { TrainCard } from '@/components/TrainCard';
-import { TrainDetailModal } from '@/components/TrainDetailModal';
 import { Station, Train, getStationDepartures } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface DeparturesBoardProps {
   station: Station;
   onBack: () => void;
+  onTrainSelect: (train: Train) => void;
+  selectedTrainKey?: string | null;
 }
 
-export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
+export function DeparturesBoard({ station, onBack, onTrainSelect, selectedTrainKey }: DeparturesBoardProps) {
   const [trains, setTrains] = useState<Train[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTrain, setSelectedTrain] = useState<Train | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showAllArrived, setShowAllArrived] = useState(false);
   const [error, setError] = useState<{ message: string; status?: number } | null>(null);
@@ -72,7 +72,7 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
   const currentTime = lastUpdate?.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col lg:min-h-0 lg:h-full">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="container max-w-md mx-auto px-6 py-4">
@@ -163,7 +163,7 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
                   <TrainCard
                     key={`${train.numeroTreno}-${train.dataPartenzaTreno}`}
                     train={train}
-                    onClick={() => setSelectedTrain(train)}
+                    onClick={() => onTrainSelect(train)}
                   />
                 ))}
                 
@@ -172,7 +172,7 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
                   <TrainCard
                     key={`${arrivedTrains[0].numeroTreno}-${arrivedTrains[0].dataPartenzaTreno}`}
                     train={arrivedTrains[0]}
-                    onClick={() => setSelectedTrain(arrivedTrains[0])}
+                    onClick={() => onTrainSelect(arrivedTrains[0])}
                   />
                 )}
               </div>
@@ -183,7 +183,7 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
               <TrainCard
                 key={`${train.numeroTreno}-${train.dataPartenzaTreno}`}
                 train={train}
-                onClick={() => setSelectedTrain(train)}
+                onClick={() => onTrainSelect(train)}
               />
             ))}
           </div>
@@ -192,16 +192,6 @@ export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
 
       {/* Bottom spacing */}
       <div className="h-8" />
-
-      {/* Train detail modal */}
-      {selectedTrain && (
-        <TrainDetailModal
-          trainNumber={selectedTrain.numeroTreno}
-          originCode={selectedTrain.codOrigine}
-          dataPartenza={selectedTrain.dataPartenzaTreno}
-          onClose={() => setSelectedTrain(null)}
-        />
-      )}
     </div>
   );
 }
