@@ -107,11 +107,20 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
     return suppressed;
   };
 
-  const getBinario = (stop: TrainStop) => {
-    return stop.binarioEffettivoPartenzaDescrizione || 
-           stop.binarioProgrammatoPartenzaDescrizione ||
-           stop.binarioEffettivoArrivoDescrizione ||
-           stop.binarioProgrammatoArrivoDescrizione;
+  const getBinario = (stop: TrainStop): string | null => {
+    // Prefer partenza if any data, otherwise arrivo
+    const hasPartenza = stop.binarioEffettivoPartenzaDescrizione || stop.binarioProgrammatoPartenzaDescrizione;
+    const effettivo = hasPartenza
+      ? stop.binarioEffettivoPartenzaDescrizione
+      : stop.binarioEffettivoArrivoDescrizione;
+    const programmato = hasPartenza
+      ? stop.binarioProgrammatoPartenzaDescrizione
+      : stop.binarioProgrammatoArrivoDescrizione;
+
+    const e = effettivo?.trim();
+    const p = programmato?.trim();
+    if (e && p && e !== p) return `${e} anziché ${p}`;
+    return e || p || null;
   };
 
   // Find the index of next stop (first non-passed stop)
@@ -188,12 +197,21 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                     return s.size > 0;
                   })());
 
-                // Detect "stuck" train: there is a stop whose ESTIMATED arrival
-                // (scheduled + current delay) is at least 15 min before NOW, but the
-                // last detection was before that estimated arrival — meaning the train
-                // should have already reached that stop but didn't.
-                const isStuck = (() => {
+                // Arrived: last non-suppressed stop has actualFermataType === 1, or details.arrivato
+                const isArrived = (() => {
                   if (isSoppresso) return false;
+                  if (details.arrivato) return true;
+                  const suppressed = getSuppressedSet();
+                  let lastIdx = -1;
+                  for (let i = details.fermate.length - 1; i >= 0; i--) {
+                    if (!suppressed.has(i)) { lastIdx = i; break; }
+                  }
+                  if (lastIdx === -1) return false;
+                  return details.fermate[lastIdx].actualFermataType === 1;
+                })();
+
+                const isStuck = (() => {
+                  if (isSoppresso || isArrived) return false;
                   if (!details.oraUltimoRilevamento) return false;
                   const now = Date.now();
                   const delayMs = (details.ritardo || 0) * 60_000;
@@ -221,6 +239,16 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                           <p className="text-3xl font-semibold text-destructive">Soppresso</p>
                         ) : isDeviato ? (
                           <p className="text-3xl font-semibold text-[hsl(217,91%,55%)]">Deviato</p>
+                        ) : isArrived ? (
+                          <>
+                            <p className="text-3xl font-semibold text-foreground">Arrivato</p>
+                            <p className={cn(
+                              "text-sm mt-1 tabular-nums",
+                              details.ritardo > 0 ? "text-destructive" : "text-muted-foreground"
+                            )}>
+                              {details.ritardo > 0 ? `+${details.ritardo}' di ritardo` : 'In orario'}
+                            </p>
+                          </>
                         ) : isStuck ? (
                           <p className="text-3xl font-semibold text-destructive">Alert!</p>
                         ) : (
@@ -243,11 +271,12 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                       )}
                     </div>
                     {isStuck && (
-                      <p className="text-sm text-destructive mb-6">Il treno non invia più la posizione</p>
+                      <p className="text-sm text-destructive mb-1">Il treno non invia più la posizione</p>
                     )}
-                    {!isStuck && isPartial && details.subTitle && (
+                    {isPartial && details.subTitle && (
                       <p className="text-sm text-destructive mb-6">{details.subTitle}</p>
                     )}
+                    {isStuck && !(isPartial && details.subTitle) && <div className="mb-6" />}
                     {!isStuck && !isPartial && <div className="mb-6" />}
                   </>
                 );
