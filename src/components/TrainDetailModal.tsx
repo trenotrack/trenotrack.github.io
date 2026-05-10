@@ -137,7 +137,7 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col lg:static lg:z-auto lg:inset-auto lg:h-full lg:w-full">
       {/* Header */}
       <header className="shrink-0 bg-background border-b border-border">
         <div className="container max-w-md mx-auto px-6 py-4">
