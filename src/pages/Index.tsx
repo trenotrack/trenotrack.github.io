@@ -3,8 +3,9 @@ import { StationSearch } from '@/components/StationSearch';
 import { TrainSearch } from '@/components/TrainSearch';
 import { DeparturesBoard } from '@/components/DeparturesBoard';
 import { TrainDetailModal } from '@/components/TrainDetailModal';
-import { Station, searchTrainByNumber } from '@/lib/api';
+import { Station, Train, searchTrainByNumber } from '@/lib/api';
 import { MapPin } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Favorite stations with preset codes
 const FAVORITE_STATIONS: Station[] = [
@@ -14,65 +15,75 @@ const FAVORITE_STATIONS: Station[] = [
   { name: 'Milano P. Garibaldi', code: 'S01645' },
 ];
 
+interface SelectedTrain {
+  trainNumber: number;
+  originCode: string;
+  dataPartenza?: number;
+  key: string;
+}
+
 const Index = () => {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
-  const [searchingTrain, setSearchingTrain] = useState<number | null>(null);
-  const [trainSearchResult, setTrainSearchResult] = useState<{
-    trainNum: string;
-    originCode: string;
-    timestamp: string;
-  } | null>(null);
+  const [selectedTrain, setSelectedTrain] = useState<SelectedTrain | null>(null);
   const [isSearchingTrain, setIsSearchingTrain] = useState(false);
   const [trainSearchError, setTrainSearchError] = useState<string | null>(null);
+  const [trainSearchKey, setTrainSearchKey] = useState(0);
 
   const handleStationSelect = (station: Station) => {
     setSelectedStation(station);
+    // Clear any train opened from a previous station context
+    setSelectedTrain(null);
+  };
+
+  const handleCloseStation = () => {
+    setSelectedStation(null);
+    // Closing the station also closes any train opened from it
+    setSelectedTrain(null);
+  };
+
+  const handleTrainFromBoard = (train: Train) => {
+    setSelectedTrain({
+      trainNumber: train.numeroTreno,
+      originCode: train.codOrigine,
+      dataPartenza: train.dataPartenzaTreno,
+      key: `${train.numeroTreno}-${train.dataPartenzaTreno}`,
+    });
   };
 
   const handleTrainSearch = async (trainNumber: string) => {
     setIsSearchingTrain(true);
     setTrainSearchError(null);
-    
+
     const result = await searchTrainByNumber(trainNumber);
-    
+
     if (result) {
-      setSearchingTrain(parseInt(result.trainNum));
-      setTrainSearchResult(result);
+      setSelectedTrain({
+        trainNumber: parseInt(result.trainNum),
+        originCode: result.originCode,
+        dataPartenza: parseInt(result.timestamp),
+        key: `search-${result.trainNum}-${result.timestamp}`,
+      });
     } else {
       setTrainSearchError('Treno non trovato');
     }
-    
+
     setIsSearchingTrain(false);
   };
 
   const handleCloseTrainDetail = () => {
-    setSearchingTrain(null);
-    setTrainSearchResult(null);
+    setSelectedTrain(null);
     setTrainSearchError(null);
     setTrainSearchKey((k) => k + 1);
   };
-
-  const [trainSearchKey, setTrainSearchKey] = useState(0);
 
   // Get current time
   const now = new Date();
   const currentTime = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
   const currentDate = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  // Show departures board if station is selected
-  if (selectedStation) {
-    return (
-      <DeparturesBoard 
-        station={selectedStation} 
-        onBack={() => setSelectedStation(null)} 
-      />
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Main content */}
-      <main className="flex-1 container max-w-md mx-auto px-6 pt-12 pb-8 flex flex-col">
+  const homeColumn = (
+    <div className="min-h-screen bg-background flex flex-col lg:min-h-0 lg:h-full">
+      <main className="flex-1 container max-w-md mx-auto px-6 pt-12 pb-8 flex flex-col w-full">
         {/* Header with time */}
         <div className="mb-10">
           <p className="text-sm text-muted-foreground capitalize">{currentDate}</p>
@@ -89,7 +100,7 @@ const Index = () => {
               Visualizza le partenze in tempo reale
             </p>
           </div>
-          
+
           {/* Favorite stations */}
           <div className="flex flex-wrap gap-2 mb-4">
             {FAVORITE_STATIONS.map((station) => (
@@ -103,8 +114,8 @@ const Index = () => {
               </button>
             ))}
           </div>
-          
-          <StationSearch 
+
+          <StationSearch
             onStationSelect={handleStationSelect}
             placeholder="Oppure cerca..."
           />
@@ -118,19 +129,19 @@ const Index = () => {
               Inserisci il numero del treno
             </p>
           </div>
-          
-          <TrainSearch 
+
+          <TrainSearch
             key={trainSearchKey}
             onSearch={handleTrainSearch}
             isLoading={isSearchingTrain}
           />
-          
+
           {isSearchingTrain && (
             <div className="flex items-center justify-center py-8">
               <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
             </div>
           )}
-          
+
           {trainSearchError && (
             <p className="text-center text-muted-foreground py-4">
               {trainSearchError}
@@ -138,14 +149,44 @@ const Index = () => {
           )}
         </div>
       </main>
+    </div>
+  );
 
-      {/* Train detail modal */}
-      {searchingTrain && trainSearchResult && (
-        <TrainDetailModal
-          trainNumber={searchingTrain}
-          originCode={trainSearchResult.originCode}
-          onClose={handleCloseTrainDetail}
-        />
+  return (
+    <div className="lg:h-screen lg:flex lg:flex-row lg:overflow-hidden">
+      {/* Home column */}
+      <div
+        className={cn(
+          'lg:flex-1 lg:min-w-0 lg:h-full lg:overflow-y-auto',
+          selectedStation && 'hidden lg:block'
+        )}
+      >
+        {homeColumn}
+      </div>
+
+      {/* Station column */}
+      {selectedStation && (
+        <div className="lg:flex-1 lg:min-w-0 lg:h-full lg:overflow-y-auto lg:border-l lg:border-border">
+          <DeparturesBoard
+            station={selectedStation}
+            onBack={handleCloseStation}
+            onTrainSelect={handleTrainFromBoard}
+            selectedTrainKey={selectedTrain?.key ?? null}
+          />
+        </div>
+      )}
+
+      {/* Train column / modal */}
+      {selectedTrain && (
+        <div className="lg:flex-1 lg:min-w-0 lg:h-full lg:overflow-y-auto lg:border-l lg:border-border">
+          <TrainDetailModal
+            key={selectedTrain.key}
+            trainNumber={selectedTrain.trainNumber}
+            originCode={selectedTrain.originCode}
+            dataPartenza={selectedTrain.dataPartenza}
+            onClose={handleCloseTrainDetail}
+          />
+        </div>
       )}
     </div>
   );
