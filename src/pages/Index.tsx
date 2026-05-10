@@ -48,7 +48,11 @@ const Index = () => {
   const handleCloseTrainDetail = () => {
     setSearchingTrain(null);
     setTrainSearchResult(null);
+    setTrainSearchError(null);
+    setTrainSearchKey((k) => k + 1);
   };
+
+  const [trainSearchKey, setTrainSearchKey] = useState(0);
 
   // Get current time
   const now = new Date();
