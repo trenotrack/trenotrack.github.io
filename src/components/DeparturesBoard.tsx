@@ -72,7 +72,7 @@ export function DeparturesBoard({ station, onBack, onTrainSelect, selectedTrainK
   const currentTime = lastUpdate?.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col lg:min-h-0 lg:h-full">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="container max-w-md mx-auto px-6 py-4">
