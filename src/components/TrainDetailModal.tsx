@@ -107,11 +107,20 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
     return suppressed;
   };
 
-  const getBinario = (stop: TrainStop) => {
-    return stop.binarioEffettivoPartenzaDescrizione || 
-           stop.binarioProgrammatoPartenzaDescrizione ||
-           stop.binarioEffettivoArrivoDescrizione ||
-           stop.binarioProgrammatoArrivoDescrizione;
+  const getBinario = (stop: TrainStop): string | null => {
+    // Prefer partenza if any data, otherwise arrivo
+    const hasPartenza = stop.binarioEffettivoPartenzaDescrizione || stop.binarioProgrammatoPartenzaDescrizione;
+    const effettivo = hasPartenza
+      ? stop.binarioEffettivoPartenzaDescrizione
+      : stop.binarioEffettivoArrivoDescrizione;
+    const programmato = hasPartenza
+      ? stop.binarioProgrammatoPartenzaDescrizione
+      : stop.binarioProgrammatoArrivoDescrizione;
+
+    const e = effettivo?.trim();
+    const p = programmato?.trim();
+    if (e && p && e !== p) return `${e} anziché ${p}`;
+    return e || p || null;
   };
 
   // Find the index of next stop (first non-passed stop)
