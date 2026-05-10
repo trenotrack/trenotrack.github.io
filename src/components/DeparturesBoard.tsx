@@ -1,19 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, RefreshCw, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { TrainCard } from '@/components/TrainCard';
-import { TrainDetailModal } from '@/components/TrainDetailModal';
 import { Station, Train, getStationDepartures } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface DeparturesBoardProps {
   station: Station;
   onBack: () => void;
+  onTrainSelect: (train: Train) => void;
+  selectedTrainKey?: string | null;
 }
 
-export function DeparturesBoard({ station, onBack }: DeparturesBoardProps) {
+export function DeparturesBoard({ station, onBack, onTrainSelect, selectedTrainKey }: DeparturesBoardProps) {
   const [trains, setTrains] = useState<Train[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTrain, setSelectedTrain] = useState<Train | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showAllArrived, setShowAllArrived] = useState(false);
   const [error, setError] = useState<{ message: string; status?: number } | null>(null);
