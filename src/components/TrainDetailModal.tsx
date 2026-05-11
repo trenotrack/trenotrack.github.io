@@ -319,6 +319,13 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                   ? calculateEstimatedTime(theoreticalTimestamp, details.ritardo)
                   : null;
 
+                // Per-stop delay color: actual delay if train has passed, otherwise current train delay
+                const realTimestamp = stop.partenzaReale || stop.arrivoReale;
+                const stopDelayMin = realTimestamp && theoreticalTimestamp
+                  ? Math.round((realTimestamp - theoreticalTimestamp) / 60000)
+                  : details.ritardo;
+                const stopDelayColor = getDelayColorClass(stopDelayMin);
+
                 return (
                   <div 
                     key={stop.id} 
