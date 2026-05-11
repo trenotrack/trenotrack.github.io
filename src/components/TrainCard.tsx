@@ -1,6 +1,8 @@
 import { CheckCircle2, XCircle, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Train as TrainType } from '@/lib/api';
+import { getLineBadge, getDelayColorClass } from '@/lib/trainLines';
+import { LineBadge } from '@/components/LineBadge';
 
 interface TrainCardProps {
   train: TrainType;
