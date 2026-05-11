@@ -89,7 +89,10 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
           
           {/* Status */}
           {(isCancelled || isArrived || train.nonPartito) && (
-            <div className="flex items-center gap-1.5 justify-end mt-2 text-xs text-muted-foreground">
+            <div className={cn(
+              "flex items-center gap-1.5 justify-end mt-2 text-xs",
+              isArrived && !isCancelled ? delayColor : "text-muted-foreground"
+            )}>
               {isCancelled && (
                 <>
                   <XCircle className="h-3.5 w-3.5" />
@@ -99,7 +102,7 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
               {isArrived && !isCancelled && (
                 <>
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>Arrivato</span>
+                  <span>Arrivato{train.ritardo > 0 ? ` +${train.ritardo}'` : ''}</span>
                 </>
               )}
               {train.nonPartito && !isCancelled && !isArrived && (
