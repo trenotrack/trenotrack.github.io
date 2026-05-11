@@ -8,6 +8,8 @@ import {
   getTrainDetails 
 } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { getLineBadge, getDelayColorClass } from '@/lib/trainLines';
+import { LineBadge } from '@/components/LineBadge';
 
 interface TrainDetailModalProps {
   trainNumber: number;
