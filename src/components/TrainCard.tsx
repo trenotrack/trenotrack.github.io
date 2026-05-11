@@ -45,13 +45,13 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
         {/* Left section - Destination focused */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 min-w-0">
+            {lineBadge && <LineBadge badge={lineBadge} />}
             <h3 className={cn(
               "text-xl font-semibold tracking-tight truncate",
               isCancelled && "line-through"
             )}>
               {train.destinazione}
             </h3>
-            {lineBadge && <LineBadge badge={lineBadge} />}
           </div>
           
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
