@@ -378,13 +378,13 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                               {details.ritardo > 0 && (
                                 <p className="text-sm text-muted-foreground line-through">{theoreticalTime}</p>
                               )}
-                              <p className="font-semibold tabular-nums">{realTime}</p>
+                              <p className={cn("font-semibold tabular-nums", stopDelayColor)}>{realTime}</p>
                             </>
                           ) : estimatedTime ? (
                             // Train hasn't arrived but has delay - show estimated
                             <>
                               <p className="text-sm text-muted-foreground line-through">{theoreticalTime}</p>
-                              <p className="font-semibold tabular-nums">~{estimatedTime}</p>
+                              <p className={cn("font-semibold tabular-nums", stopDelayColor)}>~{estimatedTime}</p>
                             </>
                           ) : (
                             // No delay or no data - show theoretical only
