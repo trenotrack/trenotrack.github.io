@@ -252,7 +252,7 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                             <p className="text-3xl font-semibold text-foreground">Arrivato</p>
                             <p className={cn(
                               "text-sm mt-1 tabular-nums",
-                              details.ritardo > 0 ? "text-destructive" : "text-muted-foreground"
+                              details.ritardo > 0 ? getDelayColorClass(details.ritardo) : "text-success"
                             )}>
                               {details.ritardo > 0 ? `+${details.ritardo}' di ritardo` : 'In orario'}
                             </p>
@@ -262,7 +262,7 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                         ) : (
                           <p className={cn(
                             "text-3xl font-semibold tabular-nums",
-                            details.ritardo > 0 ? "text-destructive" : "text-foreground"
+                            getDelayColorClass(details.ritardo)
                           )}>
                             {details.ritardo > 0 ? `+${details.ritardo}'` : 'In orario'}
                           </p>
