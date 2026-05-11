@@ -143,16 +143,22 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
       {/* Header */}
       <header className="shrink-0 bg-background border-b border-border">
         <div className="container max-w-md mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Treno</p>
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {details?.categoria || ''} {trainNumber}
-              </h1>
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="text-2xl font-semibold tracking-tight truncate">
+                  {details?.categoria || ''} {trainNumber}
+                </h1>
+                {(() => {
+                  const badge = getLineBadge(trainNumber, details?.categoria, undefined);
+                  return badge ? <LineBadge badge={badge} /> : null;
+                })()}
+              </div>
             </div>
             <button 
               onClick={onClose}
-              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors"
+              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors shrink-0"
             >
               <X className="h-5 w-5" />
             </button>
