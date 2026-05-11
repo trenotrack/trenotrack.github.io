@@ -8,6 +8,8 @@ import {
   getTrainDetails 
 } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { getLineBadge, getDelayColorClass } from '@/lib/trainLines';
+import { LineBadge } from '@/components/LineBadge';
 
 interface TrainDetailModalProps {
   trainNumber: number;
@@ -141,16 +143,22 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
       {/* Header */}
       <header className="shrink-0 bg-background border-b border-border">
         <div className="container max-w-md mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Treno</p>
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {details?.categoria || ''} {trainNumber}
-              </h1>
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="text-2xl font-semibold tracking-tight truncate">
+                  {details?.categoria || ''} {trainNumber}
+                </h1>
+                {(() => {
+                  const badge = getLineBadge(trainNumber, details?.categoria, undefined);
+                  return badge ? <LineBadge badge={badge} /> : null;
+                })()}
+              </div>
             </div>
             <button 
               onClick={onClose}
-              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors"
+              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors shrink-0"
             >
               <X className="h-5 w-5" />
             </button>
@@ -244,7 +252,7 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                             <p className="text-3xl font-semibold text-foreground">Arrivato</p>
                             <p className={cn(
                               "text-sm mt-1 tabular-nums",
-                              details.ritardo > 0 ? "text-destructive" : "text-muted-foreground"
+                              details.ritardo > 0 ? getDelayColorClass(details.ritardo) : "text-success"
                             )}>
                               {details.ritardo > 0 ? `+${details.ritardo}' di ritardo` : 'In orario'}
                             </p>
@@ -254,7 +262,7 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                         ) : (
                           <p className={cn(
                             "text-3xl font-semibold tabular-nums",
-                            details.ritardo > 0 ? "text-destructive" : "text-foreground"
+                            getDelayColorClass(details.ritardo)
                           )}>
                             {details.ritardo > 0 ? `+${details.ritardo}'` : 'In orario'}
                           </p>

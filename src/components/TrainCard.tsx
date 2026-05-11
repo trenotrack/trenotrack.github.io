@@ -1,6 +1,8 @@
 import { CheckCircle2, XCircle, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Train as TrainType } from '@/lib/api';
+import { getLineBadge, getDelayColorClass } from '@/lib/trainLines';
+import { LineBadge } from '@/components/LineBadge';
 
 interface TrainCardProps {
   train: TrainType;
@@ -23,6 +25,12 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
   const isArrived = train.arrivato;
   const binario = train.binarioEffettivoPartenzaDescrizione || train.binarioProgrammatoPartenzaDescrizione;
   const estimatedTime = hasDelay ? addMinutesToTime(train.compOrarioPartenza, train.ritardo) : null;
+  const lineBadge = getLineBadge(train.numeroTreno, train.categoria, train.categoriaDescrizione);
+  const delayColor = getDelayColorClass(train.ritardo);
+  // Show categoria sigla; fall back to first word of categoriaDescrizione (e.g. "FR" for "Frecciarossa")
+  const categoriaSigla = train.categoria?.trim()
+    || train.categoriaDescrizione?.trim().split(/\s+/)[0]
+    || '';
 
   return (
     <button 
@@ -36,15 +44,18 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
       <div className="flex items-start justify-between gap-4">
         {/* Left section - Destination focused */}
         <div className="flex-1 min-w-0">
-          <h3 className={cn(
-            "text-xl font-semibold tracking-tight truncate mb-1",
-            isCancelled && "line-through"
-          )}>
-            {train.destinazione}
-          </h3>
+          <div className="flex items-center gap-2 mb-1 min-w-0">
+            <h3 className={cn(
+              "text-xl font-semibold tracking-tight truncate",
+              isCancelled && "line-through"
+            )}>
+              {train.destinazione}
+            </h3>
+            {lineBadge && <LineBadge badge={lineBadge} />}
+          </div>
           
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span>{train.categoria} {train.numeroTreno}</span>
+            <span>{categoriaSigla} {train.numeroTreno}</span>
             {binario && (
               <>
                 <span>•</span>
@@ -62,10 +73,10 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
               <p className="text-sm text-muted-foreground line-through tabular-nums">
                 {train.compOrarioPartenza}
               </p>
-              <p className="text-2xl font-semibold tabular-nums tracking-tight">
+              <p className={cn("text-2xl font-semibold tabular-nums tracking-tight", delayColor)}>
                 {estimatedTime}
               </p>
-              <p className="text-xs font-medium text-destructive">+{train.ritardo} min</p>
+              <p className={cn("text-xs font-medium", delayColor)}>+{train.ritardo} min</p>
             </div>
           ) : (
             <p className={cn(
@@ -78,7 +89,10 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
           
           {/* Status */}
           {(isCancelled || isArrived || train.nonPartito) && (
-            <div className="flex items-center gap-1.5 justify-end mt-2 text-xs text-muted-foreground">
+            <div className={cn(
+              "flex items-center gap-1.5 justify-end mt-2 text-xs",
+              isArrived && !isCancelled ? delayColor : "text-muted-foreground"
+            )}>
               {isCancelled && (
                 <>
                   <XCircle className="h-3.5 w-3.5" />
@@ -88,7 +102,7 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
               {isArrived && !isCancelled && (
                 <>
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>Arrivato</span>
+                  <span>Arrivato{train.ritardo > 0 ? ` +${train.ritardo}'` : ''}</span>
                 </>
               )}
               {train.nonPartito && !isCancelled && !isArrived && (
