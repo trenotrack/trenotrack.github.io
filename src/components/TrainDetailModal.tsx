@@ -147,13 +147,13 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Treno</p>
               <div className="flex items-center gap-2 min-w-0">
-                <h1 className="text-2xl font-semibold tracking-tight truncate">
-                  {details?.categoria || ''} {trainNumber}
-                </h1>
                 {(() => {
                   const badge = getLineBadge(trainNumber, details?.categoria, undefined);
                   return badge ? <LineBadge badge={badge} /> : null;
                 })()}
+                <h1 className="text-2xl font-semibold tracking-tight truncate">
+                  {trainNumber}
+                </h1>
               </div>
             </div>
             <button 
