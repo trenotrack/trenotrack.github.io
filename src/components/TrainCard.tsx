@@ -44,15 +44,18 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
       <div className="flex items-start justify-between gap-4">
         {/* Left section - Destination focused */}
         <div className="flex-1 min-w-0">
-          <h3 className={cn(
-            "text-xl font-semibold tracking-tight truncate mb-1",
-            isCancelled && "line-through"
-          )}>
-            {train.destinazione}
-          </h3>
+          <div className="flex items-center gap-2 mb-1 min-w-0">
+            <h3 className={cn(
+              "text-xl font-semibold tracking-tight truncate",
+              isCancelled && "line-through"
+            )}>
+              {train.destinazione}
+            </h3>
+            {lineBadge && <LineBadge badge={lineBadge} />}
+          </div>
           
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span>{train.categoria} {train.numeroTreno}</span>
+            <span>{categoriaSigla} {train.numeroTreno}</span>
             {binario && (
               <>
                 <span>•</span>
@@ -70,10 +73,10 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
               <p className="text-sm text-muted-foreground line-through tabular-nums">
                 {train.compOrarioPartenza}
               </p>
-              <p className="text-2xl font-semibold tabular-nums tracking-tight">
+              <p className={cn("text-2xl font-semibold tabular-nums tracking-tight", delayColor)}>
                 {estimatedTime}
               </p>
-              <p className="text-xs font-medium text-destructive">+{train.ritardo} min</p>
+              <p className={cn("text-xs font-medium", delayColor)}>+{train.ritardo} min</p>
             </div>
           ) : (
             <p className={cn(
