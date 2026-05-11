@@ -147,13 +147,13 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Treno</p>
               <div className="flex items-center gap-2 min-w-0">
-                <h1 className="text-2xl font-semibold tracking-tight truncate">
-                  {details?.categoria || ''} {trainNumber}
-                </h1>
                 {(() => {
                   const badge = getLineBadge(trainNumber, details?.categoria, undefined);
                   return badge ? <LineBadge badge={badge} /> : null;
                 })()}
+                <h1 className="text-2xl font-semibold tracking-tight truncate">
+                  {trainNumber}
+                </h1>
               </div>
             </div>
             <button 
@@ -319,6 +319,13 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                   ? calculateEstimatedTime(theoreticalTimestamp, details.ritardo)
                   : null;
 
+                // Per-stop delay color: actual delay if train has passed, otherwise current train delay
+                const realTimestamp = stop.partenzaReale || stop.arrivoReale;
+                const stopDelayMin = realTimestamp && theoreticalTimestamp
+                  ? Math.round((realTimestamp - theoreticalTimestamp) / 60000)
+                  : details.ritardo;
+                const stopDelayColor = getDelayColorClass(stopDelayMin);
+
                 return (
                   <div 
                     key={stop.id} 
@@ -371,13 +378,13 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                               {details.ritardo > 0 && (
                                 <p className="text-sm text-muted-foreground line-through">{theoreticalTime}</p>
                               )}
-                              <p className="font-semibold tabular-nums">{realTime}</p>
+                              <p className={cn("font-semibold tabular-nums", stopDelayColor)}>{realTime}</p>
                             </>
                           ) : estimatedTime ? (
                             // Train hasn't arrived but has delay - show estimated
                             <>
                               <p className="text-sm text-muted-foreground line-through">{theoreticalTime}</p>
-                              <p className="font-semibold tabular-nums">~{estimatedTime}</p>
+                              <p className={cn("font-semibold tabular-nums", stopDelayColor)}>~{estimatedTime}</p>
                             </>
                           ) : (
                             // No delay or no data - show theoretical only

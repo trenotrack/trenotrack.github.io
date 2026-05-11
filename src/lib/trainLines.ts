@@ -86,9 +86,9 @@ export function getLineBadge(
   return { label: sigla, bgColor: colors.bg, textColor: colors.text };
 }
 
-// Delay color helper: green / orange / red based on minutes.
+// Delay color helper: green (<=2) / yellow (3-7) / red (>7).
 export function getDelayColorClass(delay: number): string {
-  if (delay <= 0) return 'text-success';
-  if (delay < 7) return 'text-warning';
-  return 'text-destructive';
+  if (delay <= 2) return 'text-success';
+  if (delay <= 7) return 'text-warning';
+  return 'text-delay-high';
 }
