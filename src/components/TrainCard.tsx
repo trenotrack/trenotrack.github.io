@@ -25,6 +25,12 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
   const isArrived = train.arrivato;
   const binario = train.binarioEffettivoPartenzaDescrizione || train.binarioProgrammatoPartenzaDescrizione;
   const estimatedTime = hasDelay ? addMinutesToTime(train.compOrarioPartenza, train.ritardo) : null;
+  const lineBadge = getLineBadge(train.numeroTreno, train.categoria, train.categoriaDescrizione);
+  const delayColor = getDelayColorClass(train.ritardo);
+  // Show categoria sigla; fall back to first word of categoriaDescrizione (e.g. "FR" for "Frecciarossa")
+  const categoriaSigla = train.categoria?.trim()
+    || train.categoriaDescrizione?.trim().split(/\s+/)[0]
+    || '';
 
   return (
     <button 
