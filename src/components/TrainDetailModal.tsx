@@ -156,12 +156,23 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
                 </h1>
               </div>
             </div>
-            <button 
-              onClick={onClose}
-              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors shrink-0"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={fetchDetails}
+                disabled={isLoading}
+                aria-label="Aggiorna"
+                className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                <RotateCw className={cn("h-5 w-5", isLoading && "animate-spin")} />
+              </button>
+              <button
+                onClick={onClose}
+                aria-label="Chiudi"
+                className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-muted transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
