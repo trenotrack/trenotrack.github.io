@@ -103,14 +103,14 @@ All colors MUST be HSL.
     --destructive: 22 19.1% 70.4%;
     --destructive-foreground: 248 0.3% 98.4%;
 
-    --success: 142 76% 42%;
+    --success: 152 78% 44%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 55%;
     --warning-foreground: 0 0% 0%;
 
     --delay-low: 38 92% 55%;
-    --delay-high: 0 72% 51%;
+    --delay-high: 358 90% 60%;
 
     --border: 0 0% 100% / 10%;
     --input: 0 0% 100% / 15%;
