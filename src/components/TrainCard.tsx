@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { Train as TrainType } from '@/lib/api';
 import { getLineBadge, getDelayColorClass } from '@/lib/trainLines';
 import { LineBadge } from '@/components/LineBadge';
+import { TrackingBell } from '@/components/TrackingBell';
 
 interface TrainCardProps {
   train: TrainType;
