@@ -103,16 +103,11 @@ async function runTick(body: { device_id_filter?: string }) {
 
   if (error) {
     console.error('tracked_trains query error:', error);
-    return new Response(JSON.stringify({ error: String(error) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return { ok: false, error: String(error) };
   }
 
   if (!tracked || tracked.length === 0) {
-    return new Response(JSON.stringify({ ok: true, processed: 0 }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return { ok: true, processed: 0 };
   }
 
   // Preload all subscriptions for active devices
@@ -175,7 +170,6 @@ async function runTick(body: { device_id_filter?: string }) {
       sent++;
     } catch (e: any) {
       console.error(`push send failed for ${t.train_number}:`, e?.statusCode, e?.body);
-      // 410 Gone / 404: subscription expired, remove it
       if (e?.statusCode === 410 || e?.statusCode === 404) {
         await supabase.from('push_subscriptions').delete().eq('device_id', t.device_id);
       }
@@ -184,7 +178,32 @@ async function runTick(body: { device_id_filter?: string }) {
   }
 
   console.log(`tick done in ${Date.now() - startedAt}ms: sent=${sent} skipped=${skipped} errors=${errors}`);
-  return new Response(JSON.stringify({ ok: true, sent, skipped, errors }), {
+  return { ok: true, sent, skipped, errors };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  let body: { device_id_filter?: string; twice?: boolean } = {};
+  try {
+    if (req.method === 'POST') {
+      const txt = await req.text();
+      if (txt.trim()) body = JSON.parse(txt);
+    }
+  } catch {
+    // ignore
+  }
+
+  // Cron calls with twice:true to get ~30s frequency (cron min is 1 min)
+  const r1 = await runTick(body);
+  let r2: any = null;
+  if (body.twice) {
+    await new Promise((resolve) => setTimeout(resolve, 30_000));
+    r2 = await runTick(body);
+  }
+
+  return new Response(JSON.stringify({ ok: true, r1, r2 }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });
+
