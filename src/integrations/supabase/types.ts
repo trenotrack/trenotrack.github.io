@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          device_id: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          device_id: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          device_id?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tracked_trains: {
+        Row: {
+          created_at: string
+          data_partenza: number
+          destination: string | null
+          device_id: string
+          id: string
+          last_notification_hash: string | null
+          last_sent_at: string | null
+          line_label: string | null
+          origin_code: string
+          train_number: number
+        }
+        Insert: {
+          created_at?: string
+          data_partenza: number
+          destination?: string | null
+          device_id: string
+          id?: string
+          last_notification_hash?: string | null
+          last_sent_at?: string | null
+          line_label?: string | null
+          origin_code: string
+          train_number: number
+        }
+        Update: {
+          created_at?: string
+          data_partenza?: number
+          destination?: string | null
+          device_id?: string
+          id?: string
+          last_notification_hash?: string | null
+          last_sent_at?: string | null
+          line_label?: string | null
+          origin_code?: string
+          train_number?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
