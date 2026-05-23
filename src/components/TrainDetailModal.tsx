@@ -158,6 +158,18 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              {dataPartenza && (
+                <TrackingBell
+                  size="md"
+                  payload={{
+                    trainNumber,
+                    originCode,
+                    dataPartenza,
+                    lineLabel: getLineBadge(trainNumber, details?.categoria, undefined)?.label ?? null,
+                    destination: details?.destinazione ?? null,
+                  }}
+                />
+              )}
               <button
                 onClick={fetchDetails}
                 disabled={isLoading}
