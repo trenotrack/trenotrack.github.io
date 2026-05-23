@@ -1,73 +1,75 @@
-## Obiettivo
-Migliorare la grafica con colori per stato treno e badge colorato per la linea.
+## Tracking treni in tempo reale con notifiche push (Android PWA)
 
-## 1. Colori dello stato (TrainCard + TrainDetailModal)
+### Cosa costruiamo
 
-Funzione helper centralizzata `getDelayColorClass(delay)`:
-- `delay <= 0` → verde (success)
-- `1-6 min` → arancione/giallo scuro (warning / delay-low)
-- `>= 7 min` → rosso (destructive / delay-high)
+Una campanella su ogni TrainCard e nell'header del dettaglio treno. Click → permesso notifiche → il server invia push ogni 30s aggiornando lo stato. Notifica con azione "Stop tracking" che ferma il tracking senza aprire l'app.
 
-Applicazione:
-- **TrainCard**: l'orario stimato e il `+X min` usano questa scala (oggi: arancio fisso/destructive). L'etichetta "Arrivato" assume lo stesso colore in base al ritardo finale del treno; se ritardo 0 → verde, ecc.
-- **TrainDetailModal**: stessa logica per il badge di stato principale (ritardo/in orario/Arrivato). Lo stato "Alert!" e "Soppresso/Cancellato" restano rossi come oggi. "Non partito" resta neutro.
+### Architettura
 
-Token: già esistono `--success`, `--warning`, `--destructive`, `--delay-low`, `--delay-high` in `index.css` / `tailwind.config.ts`. Userò i token esistenti, nessun nuovo colore globale.
+```text
+┌──────────┐  subscribe   ┌────────────────────┐
+│  PWA     │─────────────▶│ edge: subscribe    │──▶ DB: push_subscriptions
+│          │              │ edge: track-train  │──▶ DB: tracked_trains
+│          │              │ edge: untrack      │
+│  SW      │◀─push─via────│ edge: notify-cron  │◀── pg_cron ogni 30s
+│ (notif)  │  VAPID       │  (polla API +      │     polla ViaggiaTreno
+└──────────┘              │   invia web-push)  │     per ogni treno attivo
+                          └────────────────────┘
+```
 
-## 2. Badge linea accanto alla destinazione
+### Database (Lovable Cloud)
 
-Nuovo componente `LineBadge` (rettangolo stondato, testo bianco bold, padding compatto) mostrato accanto al nome destinazione in `TrainCard` e nell'header di `TrainDetailModal`.
+- `push_subscriptions`: device_id (text), endpoint, p256dh, auth, created_at. UNIQUE(device_id).
+- `tracked_trains`: id, device_id, train_number, origin_code, data_partenza, line_label, destination, last_notification_hash (per evitare re-invio se nulla è cambiato), last_sent_at, created_at. UNIQUE(device_id, train_number, data_partenza).
 
-### Mappatura numero treno → linea
-Funzione `getLineFromTrainNumber(num: number, categoriaDescrizione: string)` che ritorna `{ label, bgColor }`.
+Niente login: `device_id` = UUID generato e salvato in `localStorage`. RLS aperto (le tabelle non sono leggibili dal client se non tramite edge function con service role; in pratica niente accesso anon).
 
-Pattern (controllati nell'ordine, "108xx" = numero che inizia con "108" indipendentemente dalla lunghezza totale; per i 5-cifre tipici "108xx" = 10800-10899):
+### Edge Functions
 
-| Linea | Pattern | Colore (route_color) |
-|---|---|---|
-| S1 | 108xx, 118xx, 240xx, 241xx | #e40520 |
-| S2 | 226xx, 242xx | #009879 |
-| S3 | 8xx | #a90a2e |
-| S4 | 7xx, 1709 | #83bb26 |
-| S5 | 245xx | #f39123 |
-| S6 | 246xx | #f6d200 |
-| S7 | 247xx | #e50071 |
-| S8 | 248xx | #f6b6b6 |
-| S9 | 249xx, 304xx, 314xx, 344xx | #a2338a |
-| S11 | 250xx, 252xx, 33173 | #a593c6 |
-| S12 | 256xx | #2c5234 |
-| S13 | 243xx, 328xx | #a76d11 |
-| S19 | 259xx | #663333 |
-| RE80 | 255xx | #004dff |
-| R14 | 258xx | #94C120 |
-| R16 | 16xx, 46xx | #94C120 |
-| RE8 | 28xx | #E40314 |
-| RE5 | 25xx | #E40314 |
+1. **`get-vapid-public-key`** (GET): ritorna la public key per la `subscribe()` lato client.
+2. **`save-subscription`** (POST `{device_id, subscription}`): upsert in `push_subscriptions`.
+3. **`track-train`** (POST `{device_id, train_number, origin_code, data_partenza, line_label, destination}`): insert in `tracked_trains` + invia subito una prima push di conferma.
+4. **`untrack-train`** (POST `{device_id, train_number, data_partenza}` — chiamato dall'action `Stop tracking` del SW): elimina la riga.
+5. **`tracking-tick`** (cron ogni 30s): per ogni `tracked_trains`, chiama ViaggiaTreno `andamentoTreno`, calcola hash di `{ritardo, prossima_stazione, orario_previsto}`, se diverso da `last_notification_hash` chiude la vecchia notifica (via `tag`) e ne invia una nuova; aggiorna hash.
 
-Nota: "8xx" = numero a 3 cifre 800-899, "7xx" = 700-799, "16xx" = 1600-1699 (esclusi quelli più specifici già matchati prima), ecc. L'ordine di check sarà dal più specifico (es. 1709 prima di 17xx) al più generico.
+VAPID keys: le genero al volo via `npm:web-push@3` e le aggiungo come secrets `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (mailto: placeholder).
 
-### Fallback per numero non riconosciuto
-Mostra `categoriaDescrizione` (sigla, es "FR", "IC"). Colore di sfondo:
-- `FR` → #BD2D30
-- `IC` → #3C88D9
-- `EC` → #4EAC63
-- altrimenti (RE, REG, ecc.) → grigio 20% (`hsl(var(--muted))` o `#CCCCCC`)
+### Service Worker (push handler)
 
-Testo sempre bianco (route_text_color sempre FFFFFF nel file). Per il fallback grigio chiaro userò testo scuro (foreground) per leggibilità.
+Esteso `vite-plugin-pwa` con `srcDir`/`strategies: 'injectManifest'` o aggiungendo handler custom via `injectManifest` per gestire eventi `push` e `notificationclick`:
+- `push`: mostra notifica con `tag` univoco per treno → sostituisce la precedente automaticamente. `actions: [{action: 'stop', title: 'Stop tracking'}]`.
+- `notificationclick`: se `action === 'stop'` → `fetch` a `untrack-train` con i parametri nel `data` della notifica.
 
-## 3. Mostrare "FR" accanto al numero treno
+### UI
 
-In `TrainCard` oggi viene mostrato `{train.categoria} {train.numeroTreno}` ma per i Frecciarossa `categoria` può essere vuoto/non "FR". Userò come prefisso `train.categoria || train.categoriaDescrizione` e per le FR la `categoriaDescrizione` sarà "Frecciarossa" → mostrerò la sigla derivata. Più sicuro: mostrare sempre `categoriaDescrizione` se `categoria` è vuota. Da verificare in fase implementativa quale campo restituisce esattamente "FR".
+- **`useTracking` hook**: gestisce device_id (localStorage), permesso notifiche, subscription, e mantiene un Set locale dei treni tracciati (caricato all'avvio da `tracked_trains` filtrato per device_id).
+- **`TrackingBell` componente**: icona campanella (vuota/piena). Click → se non sottoscritto, prompt permesso + subscribe; poi toggle track/untrack.
+- Aggiunta in `TrainCard` (in alto a destra, accanto al tempo) e nell'header di `TrainDetailModal`.
 
-Nota: il badge linea risolve già la visibilità di "FR" come categoria, ma manterrò anche la riga sotto la destinazione per coerenza.
+### Formato notifica
 
-## File da modificare
-- `src/lib/trainLines.ts` (nuovo) — pattern matching e colori linea/categoria.
-- `src/components/LineBadge.tsx` (nuovo) — componente badge.
-- `src/components/TrainCard.tsx` — integrare LineBadge, scala colori ritardo, fix sigla categoria.
-- `src/components/TrainDetailModal.tsx` — LineBadge nell'header, scala colori ritardo applicata allo stato.
+- Titolo: `{lineLabel ?? categoria} - {numeroTreno} - {destinazione}`
+- Corpo: `Next: {prossimaStazione} {orarioPrevisto} (previsto {orarioProgrammato})` — se il treno è arrivato a destinazione: `Arrivato`.
 
-Nessuna modifica a logica API, polling, PWA o layout colonne.
+### Vincoli da ricordare
 
-## Domande aperte
-Nessuna bloccante: procedo con i colori e i pattern come specificato sopra.
+- Funziona su **Android Chrome/Edge con PWA installata** (o anche da browser, ma le push sono più affidabili se installata).
+- Periodo minimo cron Supabase è 1 minuto. Per avere ~30s userò **una sola cron a 1 min** che fa due iterazioni a distanza di 30s (`await new Promise(r => setTimeout(r, 30000))` a metà). Più semplice e robusto.
+- Le push **non funzionano nel preview Lovable** (iframe + SW disabilitato in preview). Test reale solo su build pubblicata e installata su Android.
+
+### Step di implementazione
+
+1. Generare VAPID keys + salvarle come secrets (3 secrets via add_secret — userò valori che genero io con web-push).
+2. Migration: tabelle + RLS + abilitare `pg_cron`/`pg_net`.
+3. Edge functions (5).
+4. Cron job (via insert tool, contiene URL+anon).
+5. Custom service worker (`public/sw-push.js` iniettato via injectManifest).
+6. `useTracking` hook + `TrackingBell` componente.
+7. Integrazione in `TrainCard` e `TrainDetailModal`.
+
+### Comunicazione finale all'utente
+
+Dopo l'implementazione spiegherò:
+- Come installare la PWA su Android (Chrome → menu → Installa app).
+- Che il primo click sulla campana chiede il permesso notifiche.
+- Che il preview dell'editor non riceve push: testare sulla URL pubblicata dopo "Publish".
