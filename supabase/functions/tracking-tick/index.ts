@@ -84,20 +84,8 @@ function buildNotif(d: TrainDetails, lineLabel: string | null, destination: stri
   return { title, body, hash };
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-
+async function runTick(body: { device_id_filter?: string }) {
   const startedAt = Date.now();
-  let body: { device_id_filter?: string } = {};
-  try {
-    if (req.method === 'POST') {
-      const txt = await req.text();
-      if (txt.trim()) body = JSON.parse(txt);
-    }
-  } catch {
-    // ignore
-  }
-
   webpush.setVapidDetails(
     Deno.env.get('VAPID_SUBJECT')!,
     Deno.env.get('VAPID_PUBLIC_KEY')!,
