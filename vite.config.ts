@@ -54,6 +54,7 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         navigateFallbackDenylist: [/^\/~oauth/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        importScripts: ["/push-handlers.js"],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === "navigate",
