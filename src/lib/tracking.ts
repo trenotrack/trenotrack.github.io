@@ -62,7 +62,7 @@ export async function ensurePushSubscription(): Promise<boolean> {
     if (error || !data?.publicKey) throw new Error('Impossibile ottenere la chiave VAPID.');
     sub = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+      applicationServerKey: urlBase64ToUint8Array(data.publicKey).buffer as ArrayBuffer,
     });
   }
 
