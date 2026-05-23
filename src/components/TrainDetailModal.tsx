@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getLineBadge, getDelayColorClass } from '@/lib/trainLines';
 import { LineBadge } from '@/components/LineBadge';
+import { TrackingBell } from '@/components/TrackingBell';
 
 interface TrainDetailModalProps {
   trainNumber: number;
