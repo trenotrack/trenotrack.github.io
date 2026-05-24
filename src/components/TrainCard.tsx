@@ -74,7 +74,7 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
         </div>
 
         {/* Right section - Time */}
-        <div className={cn("text-right shrink-0", !isArrived && !isCancelled && "mt-8")}>
+        <div className="text-right shrink-0">
           {/* Time display */}
           {hasDelay && !isCancelled ? (
             <div className="space-y-0.5">
