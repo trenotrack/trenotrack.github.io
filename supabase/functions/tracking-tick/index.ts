@@ -145,6 +145,7 @@ async function runTick(body: { device_id_filter?: string }) {
         device_id: t.device_id,
         train_number: t.train_number,
         data_partenza: t.data_partenza,
+        origin_code: t.origin_code,
       },
     });
 
