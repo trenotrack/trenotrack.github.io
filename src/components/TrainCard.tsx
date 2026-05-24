@@ -49,21 +49,6 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
         isCancelled && "opacity-40"
       )}
     >
-      {/* Tracking bell — top right */}
-      {!isArrived && !isCancelled && (
-        <div className="absolute top-3 right-0">
-          <TrackingBell
-            payload={{
-              trainNumber: train.numeroTreno,
-              originCode: train.codOrigine,
-              dataPartenza: train.dataPartenzaTreno,
-              lineLabel: lineBadge?.label ?? null,
-              destination: train.destinazione,
-            }}
-          />
-        </div>
-      )}
-
       <div className="flex items-start justify-between gap-4">
         {/* Left section - Destination focused */}
         <div className="flex-1 min-w-0">
