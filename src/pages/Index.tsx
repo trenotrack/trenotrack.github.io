@@ -187,6 +187,11 @@ const Index = () => {
             </p>
           )}
         </div>
+
+        {/* Tracked trains */}
+        <div className="mt-10">
+          <TrackedTrainsList onSelect={handleTrackedSelect} />
+        </div>
       </main>
     </div>
   );
