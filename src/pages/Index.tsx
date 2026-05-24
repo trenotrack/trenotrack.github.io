@@ -77,6 +77,44 @@ const Index = () => {
     setTrainSearchKey((k) => k + 1);
   };
 
+  // Handle ?train=N&data=TS&origin=X (from notification click) and SW messages
+  useEffect(() => {
+    const openFromParams = (search: string) => {
+      const params = new URLSearchParams(search);
+      const train = params.get('train');
+      const data = params.get('data');
+      const origin = params.get('origin');
+      if (train && data && origin) {
+        setSelectedTrain({
+          trainNumber: parseInt(train),
+          originCode: origin,
+          dataPartenza: parseInt(data),
+          key: `notif-${train}-${data}-${Date.now()}`,
+        });
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    };
+    openFromParams(window.location.search);
+    const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === 'open-train' && typeof e.data.path === 'string') {
+        const qIdx = e.data.path.indexOf('?');
+        if (qIdx !== -1) openFromParams(e.data.path.slice(qIdx));
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', onMsg);
+    return () => navigator.serviceWorker?.removeEventListener('message', onMsg);
+  }, []);
+
+  const handleTrackedSelect = (t: { trainNumber: number; originCode: string; dataPartenza: number }) => {
+    setSelectedTrain({
+      trainNumber: t.trainNumber,
+      originCode: t.originCode,
+      dataPartenza: t.dataPartenza,
+      key: `tracked-${t.trainNumber}-${t.dataPartenza}`,
+    });
+  };
+
   // Get current time
   const now = new Date();
   const currentTime = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
