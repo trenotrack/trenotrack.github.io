@@ -3,7 +3,6 @@ import { cn } from '@/lib/utils';
 import { Train as TrainType } from '@/lib/api';
 import { getLineBadge, getDelayColorClass } from '@/lib/trainLines';
 import { LineBadge } from '@/components/LineBadge';
-import { TrackingBell } from '@/components/TrackingBell';
 
 interface TrainCardProps {
   train: TrainType;
@@ -50,21 +49,6 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
         isCancelled && "opacity-40"
       )}
     >
-      {/* Tracking bell — top right */}
-      {!isArrived && !isCancelled && (
-        <div className="absolute top-3 right-0">
-          <TrackingBell
-            payload={{
-              trainNumber: train.numeroTreno,
-              originCode: train.codOrigine,
-              dataPartenza: train.dataPartenzaTreno,
-              lineLabel: lineBadge?.label ?? null,
-              destination: train.destinazione,
-            }}
-          />
-        </div>
-      )}
-
       <div className="flex items-start justify-between gap-4">
         {/* Left section - Destination focused */}
         <div className="flex-1 min-w-0">
@@ -90,7 +74,7 @@ export function TrainCard({ train, onClick }: TrainCardProps) {
         </div>
 
         {/* Right section - Time */}
-        <div className={cn("text-right shrink-0", !isArrived && !isCancelled && "mt-8")}>
+        <div className="text-right shrink-0">
           {/* Time display */}
           {hasDelay && !isCancelled ? (
             <div className="space-y-0.5">

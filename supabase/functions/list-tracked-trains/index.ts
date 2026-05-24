@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
 
     const { data, error } = await supabase
       .from('tracked_trains')
-      .select('train_number, data_partenza')
+      .select('train_number, data_partenza, origin_code, line_label, destination')
       .eq('device_id', device_id);
 
     if (error) throw error;

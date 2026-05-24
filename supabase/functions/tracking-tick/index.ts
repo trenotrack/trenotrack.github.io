@@ -70,14 +70,10 @@ function buildNotif(d: TrainDetails, lineLabel: string | null, destination: stri
   } else {
     const next = d.fermate[nextStopIdx];
     const scheduled = next.arrivo_teorico ?? next.partenza_teorica;
-    const scheduledStr = fmtTime(scheduled);
     const estimatedMs = scheduled ? scheduled + d.ritardo * 60_000 : null;
-    const estimatedStr = fmtTime(estimatedMs);
-    if (d.ritardo > 0) {
-      body = `Next: ${next.stazione} ${estimatedStr} (previsto ${scheduledStr})`;
-    } else {
-      body = `Next: ${next.stazione} ${scheduledStr}`;
-    }
+    const timeStr = fmtTime(estimatedMs ?? scheduled);
+    const delaySuffix = d.ritardo > 0 ? ` (+${d.ritardo}')` : '';
+    body = `Next: ${next.stazione} ${timeStr}${delaySuffix}`;
   }
 
   const hash = `${d.ritardo}|${nextStopIdx}|${isArrived ? 1 : 0}|${d.tipoTreno || ''}`;
@@ -149,6 +145,7 @@ async function runTick(body: { device_id_filter?: string }) {
         device_id: t.device_id,
         train_number: t.train_number,
         data_partenza: t.data_partenza,
+        origin_code: t.origin_code,
       },
     });
 
