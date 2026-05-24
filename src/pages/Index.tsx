@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StationSearch } from '@/components/StationSearch';
 import { TrainSearch } from '@/components/TrainSearch';
 import { DeparturesBoard } from '@/components/DeparturesBoard';
 import { TrainDetailModal } from '@/components/TrainDetailModal';
+import { TrackedTrainsList } from '@/components/TrackedTrainsList';
 import { Station, Train, searchTrainByNumber } from '@/lib/api';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';

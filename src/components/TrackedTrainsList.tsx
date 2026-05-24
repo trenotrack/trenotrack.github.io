@@ -6,7 +6,7 @@ import { useTracking } from '@/contexts/TrackingContext';
 import { getLineBadge, getDelayColorClass } from '@/lib/trainLines';
 import { LineBadge } from '@/components/LineBadge';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+
 
 interface TrackedTrainRow {
   train_number: number;
