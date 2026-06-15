@@ -4,9 +4,16 @@ import { TrainSearch } from '@/components/TrainSearch';
 import { DeparturesBoard } from '@/components/DeparturesBoard';
 import { TrainDetailModal } from '@/components/TrainDetailModal';
 import { TrackedTrainsList } from '@/components/TrackedTrainsList';
-import { Station, Train, searchTrainByNumber } from '@/lib/api';
+import { Station, Train, searchTrainCandidates, TrainCandidate } from '@/lib/api';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 // Favorite stations with preset codes
 const FAVORITE_STATIONS: Station[] = [
@@ -30,6 +37,8 @@ const Index = () => {
   const [trainSearchError, setTrainSearchError] = useState<string | null>(null);
   const [trainSearchKey, setTrainSearchKey] = useState(0);
 
+  const [candidates, setCandidates] = useState<TrainCandidate[] | null>(null);
+
   const handleStationSelect = (station: Station) => {
     setSelectedStation(station);
     // Clear any train opened from a previous station context
@@ -51,21 +60,32 @@ const Index = () => {
     });
   };
 
+  const openCandidate = (c: TrainCandidate, keyPrefix: string) => {
+    // Searching a train from the home replaces the intermediate station view
+    setSelectedStation(null);
+    setCandidates(null);
+    setSelectedTrain({
+      trainNumber: parseInt(c.trainNum),
+      originCode: c.originCode,
+      dataPartenza: parseInt(c.timestamp),
+      key: `${keyPrefix}-${c.trainNum}-${c.timestamp}`,
+    });
+  };
+
   const handleTrainSearch = async (trainNumber: string) => {
     setIsSearchingTrain(true);
     setTrainSearchError(null);
+    setCandidates(null);
 
-    const result = await searchTrainByNumber(trainNumber);
+    const results = await searchTrainCandidates(trainNumber);
 
-    if (result) {
-      setSelectedTrain({
-        trainNumber: parseInt(result.trainNum),
-        originCode: result.originCode,
-        dataPartenza: parseInt(result.timestamp),
-        key: `search-${result.trainNum}-${result.timestamp}`,
-      });
-    } else {
+    if (results.length === 0) {
       setTrainSearchError('Treno non trovato');
+    } else if (results.length === 1) {
+      openCandidate(results[0], 'search');
+    } else {
+      // Multiple trains share this number: ask the user which one
+      setCandidates(results);
     }
 
     setIsSearchingTrain(false);
@@ -76,6 +96,7 @@ const Index = () => {
     setTrainSearchError(null);
     setTrainSearchKey((k) => k + 1);
   };
+
 
   // Handle ?train=N&data=TS&origin=X (from notification click) and SW messages
   useEffect(() => {
@@ -232,7 +253,32 @@ const Index = () => {
           />
         </div>
       )}
+
+      {/* Multiple trains share this number: let the user choose */}
+      <Dialog open={!!candidates} onOpenChange={(open) => !open && setCandidates(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Quale treno?</DialogTitle>
+            <DialogDescription>
+              Più treni hanno questo numero. Scegli quello da visualizzare.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-2">
+            {candidates?.map((c) => (
+              <button
+                key={`${c.originCode}-${c.timestamp}`}
+                onClick={() => openCandidate(c, 'pick')}
+                className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-xl transition-colors"
+              >
+                <p className="font-medium">Treno {c.trainNum}</p>
+                <p className="text-sm text-muted-foreground">{c.label}</p>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 };
 

@@ -122,7 +122,10 @@ export function TrainDetailModal({ trainNumber, originCode, dataPartenza, onClos
 
     const e = effettivo?.trim();
     const p = programmato?.trim();
-    if (e && p && e !== p) return `${e} anziché ${p}`;
+    // Case-insensitive + whitespace-insensitive comparison so e.g.
+    // "4 TRONCO" and "4 Tronco" are treated as identical.
+    const norm = (v: string) => v.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (e && p && norm(e) !== norm(p)) return `${e} anziché ${p}`;
     return e || p || null;
   };
 
