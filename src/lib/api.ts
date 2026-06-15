@@ -161,29 +161,50 @@ export async function getStationDepartures(stationCode: string): Promise<Train[]
   return data || [];
 }
 
-export async function searchTrainByNumber(trainNumber: string): Promise<{ originCode: string; trainNum: string; timestamp: string } | null> {
+export interface TrainCandidate {
+  originCode: string;
+  trainNum: string;
+  timestamp: string;
+  label: string; // e.g. "COMO LAGO - 11/05/26"
+}
+
+export async function searchTrainCandidates(trainNumber: string): Promise<TrainCandidate[]> {
   try {
     const response = await fetchWithRetry(buildUrl(`cercaNumeroTrenoTrenoAutocomplete/${trainNumber}`));
 
-    if (!response.ok) return null;
+    if (!response.ok) return [];
 
     const text = await readProxyText(response);
-    if (!text.trim()) return null;
+    if (!text.trim()) return [];
 
-    // Format: "25031 - COMO S.GIOVANNI - 24/01/26|25031-S01307-1769209200000"
-    const firstLine = text.split('\n')[0];
-    if (!firstLine) return null;
-
-    const parts = firstLine.split('|');
-    if (parts.length < 2) return null;
-
-    const [trainNum, originCode, timestamp] = parts[1].split('-');
-    return { trainNum, originCode, timestamp };
+    // Format per line: "2156 - COMO LAGO - 11/05/26|2156-S01765-1778450400000"
+    return text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split('|');
+        if (parts.length < 2) return null;
+        const [trainNum, originCode, timestamp] = parts[1].split('-');
+        if (!trainNum || !originCode || !timestamp) return null;
+        // Human label: strip leading train number from the descriptive part
+        const desc = parts[0].split(' - ').slice(1).join(' - ').trim() || parts[0].trim();
+        return { trainNum, originCode, timestamp, label: desc } as TrainCandidate;
+      })
+      .filter((c): c is TrainCandidate => c !== null);
   } catch (error) {
-    console.error('Error searching train:', error);
-    return null;
+    console.error('Error searching train candidates:', error);
+    return [];
   }
 }
+
+export async function searchTrainByNumber(trainNumber: string): Promise<{ originCode: string; trainNum: string; timestamp: string } | null> {
+  const candidates = await searchTrainCandidates(trainNumber);
+  if (candidates.length === 0) return null;
+  const { originCode, trainNum, timestamp } = candidates[0];
+  return { originCode, trainNum, timestamp };
+}
+
 
 export async function getTrainDetails(originCode: string, trainNumber: string, timestamp: string): Promise<TrainDetails | null> {
   try {
