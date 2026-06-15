@@ -34,9 +34,21 @@ function fmtTime(ts: number | null): string {
   });
 }
 
+const BROWSER_HEADERS: Record<string, string> = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  Referer: 'https://www.viaggiatreno.it/infomobilita/index.jsp',
+  Origin: 'https://www.viaggiatreno.it',
+  Accept: 'application/json, text/plain, */*',
+  'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8',
+  'X-Requested-With': 'XMLHttpRequest',
+};
+
 async function getDetails(originCode: string, num: number, ts: number): Promise<TrainDetails | null> {
   try {
-    const r = await fetch(`${VIAGGIATRENO_BASE}/andamentoTreno/${originCode}/${num}/${ts}`);
+    const r = await fetch(`${VIAGGIATRENO_BASE}/andamentoTreno/${originCode}/${num}/${ts}`, {
+      headers: BROWSER_HEADERS,
+    });
     if (!r.ok) return null;
     const txt = await r.text();
     if (!txt.trim()) return null;
