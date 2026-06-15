@@ -1,12 +1,13 @@
 // API utilities for ViaggiaTreno
 
-const BASE_URL = 'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
-
-// Custom Cloudflare Worker CORS proxy (returns raw upstream body)
-const corsProxy = 'https://trenotracker.enricozoia.workers.dev/?url=';
+// Internal proxy: Supabase Edge Function that forwards to ViaggiaTreno
+// with browser-like headers (different IPs than the old Cloudflare Worker,
+// which Akamai started blocking).
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const VT_PROXY = `${SUPABASE_URL}/functions/v1/vt-proxy`;
 
 function buildUrl(path: string): string {
-  return `${corsProxy}${encodeURIComponent(`${BASE_URL}/${path}`)}`;
+  return `${VT_PROXY}?path=${encodeURIComponent(path)}`;
 }
 
 async function readProxyText(response: Response): Promise<string> {
