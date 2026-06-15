@@ -253,7 +253,32 @@ const Index = () => {
           />
         </div>
       )}
+
+      {/* Multiple trains share this number: let the user choose */}
+      <Dialog open={!!candidates} onOpenChange={(open) => !open && setCandidates(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Quale treno?</DialogTitle>
+            <DialogDescription>
+              Più treni hanno questo numero. Scegli quello da visualizzare.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-2">
+            {candidates?.map((c) => (
+              <button
+                key={`${c.originCode}-${c.timestamp}`}
+                onClick={() => openCandidate(c, 'pick')}
+                className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-xl transition-colors"
+              >
+                <p className="font-medium">Treno {c.trainNum}</p>
+                <p className="text-sm text-muted-foreground">{c.label}</p>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 };
 
