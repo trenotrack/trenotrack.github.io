@@ -4,9 +4,16 @@ import { TrainSearch } from '@/components/TrainSearch';
 import { DeparturesBoard } from '@/components/DeparturesBoard';
 import { TrainDetailModal } from '@/components/TrainDetailModal';
 import { TrackedTrainsList } from '@/components/TrackedTrainsList';
-import { Station, Train, searchTrainByNumber } from '@/lib/api';
+import { Station, Train, searchTrainCandidates, TrainCandidate } from '@/lib/api';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 // Favorite stations with preset codes
 const FAVORITE_STATIONS: Station[] = [
