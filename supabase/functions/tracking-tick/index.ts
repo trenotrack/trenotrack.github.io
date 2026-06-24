@@ -161,6 +161,13 @@ async function runTick(body: { device_id_filter?: string }) {
       },
     });
 
+    // `topic` (max 32 url-safe chars) lets the push service COLLAPSE any
+    // still-undelivered notification for this train with the newest one, so a
+    // locked phone in Doze receives only the latest state instead of a burst of
+    // intermediate notifications on wake. `urgency: high` tells FCM to deliver
+    // immediately even during Doze, so updates also reach the smartwatch.
+    const topic = `t${t.train_number}-${t.data_partenza}`.slice(0, 32);
+
     try {
       await webpush.sendNotification(
         {
@@ -168,6 +175,11 @@ async function runTick(body: { device_id_filter?: string }) {
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         },
         payload,
+        {
+          TTL: 1800,
+          urgency: 'high',
+          topic,
+        },
       );
       await supabase
         .from('tracked_trains')
