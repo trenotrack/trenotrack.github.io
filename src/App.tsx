@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { TrackingProvider } from "./contexts/TrackingContext";
+import { AuthGate } from "./components/AuthGate";
 
 const queryClient = new QueryClient();
 
